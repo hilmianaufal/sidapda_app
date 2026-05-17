@@ -119,4 +119,43 @@ class ActivityRecapController extends Controller
             $filename
         );
     }
+
+    public function markStatus(Request $request)
+{
+    $data = $request->validate([
+        'activity_id' => ['required', 'exists:activities,id'],
+        'student_id' => ['required', 'exists:students,id'],
+        'date' => ['required', 'date'],
+        'status' => ['required', 'in:izin,sakit,pulang'],
+    ]);
+
+    $activity = Activity::findOrFail($data['activity_id']);
+
+    $startedAt = \Illuminate\Support\Carbon::parse($data['date'].' '.$activity->start_time);
+    $endedAt = \Illuminate\Support\Carbon::parse($data['date'].' '.$activity->end_time);
+
+    $session = ActivitySession::firstOrCreate(
+        [
+            'activity_id' => $activity->id,
+            'started_at' => $startedAt,
+        ],
+        [
+            'ended_at' => $endedAt,
+            'status' => 'live',
+        ]
+    );
+
+    ActivityAttendance::updateOrCreate(
+        [
+            'activity_session_id' => $session->id,
+            'student_id' => $data['student_id'],
+        ],
+        [
+            'scanned_at' => now(),
+            'status' => $data['status'],
+        ]
+    );
+
+    return back()->with('success', 'Status santri berhasil diperbarui.');
+}
 }

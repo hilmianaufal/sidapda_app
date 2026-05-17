@@ -106,3 +106,6 @@ Route::get('/rekap-kegiatan/export/excel', [ActivityRecapController::class, 'exp
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
 });
+
+Route::post('/rekap-kegiatan/status', [ActivityRecapController::class, 'markStatus'])
+    ->name('activities.recap.mark-status');
