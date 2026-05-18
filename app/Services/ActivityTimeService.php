@@ -16,13 +16,15 @@ class ActivityTimeService
         $todayDay = $now->dayOfWeek;
 
         return Activity::where('is_active', true)
-
             ->where(function ($q) use ($todayDay, $todayDate) {
 
                 // kegiatan rutin
                 $q->where(function ($r) use ($todayDay) {
                     $r->where('type', 'routine')
-                        ->whereJsonContains('days', $todayDay);
+                        ->where(function ($dayQuery) use ($todayDay) {
+                            $dayQuery->whereJsonContains('days', $todayDay)
+                                ->orWhereJsonContains('days', (string) $todayDay);
+                        });
                 });
 
                 // kegiatan manual
@@ -31,10 +33,9 @@ class ActivityTimeService
                         ->whereDate('event_date', $todayDate);
                 });
             })
-
             ->where('start_time', '<=', $currentTime)
             ->where('end_time', '>=', $currentTime)
-
+            ->orderByRaw("CASE WHEN type = 'manual' THEN 0 ELSE 1 END")
             ->orderBy('order')
             ->first();
     }
