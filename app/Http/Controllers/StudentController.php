@@ -1,8 +1,11 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
@@ -14,7 +17,7 @@ class StudentController extends Controller
         $kamar = $request->query('kamar');
 
         $students = Student::query()
-            ->when($q, fn($qr) => $qr->where(function($w) use ($q){
+            ->when($q, fn($qr) => $qr->where(function($w) use ($q) {
                 $w->where('name', 'like', "%$q%")
                   ->orWhere('nis', 'like', "%$q%");
             }))
@@ -24,7 +27,6 @@ class StudentController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        // untuk dropdown filter (ambil unik dari DB)
         $kelasList = Student::query()->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
         $kamarList = Student::query()->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
@@ -39,14 +41,30 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nis' => ['required','string','max:50','unique:students,nis'],
-            'name' => ['required','string','max:120'],
-            'kelas' => ['nullable','string','max:50'],
-            'kamar' => ['nullable','string','max:50'],
+            'nis'       => ['required','string','max:50','unique:students,nis'],
+            'name'      => ['required','string','max:120'],
+            'kelas'     => ['nullable','string','max:50'],
+            'kamar'     => ['nullable','string','max:50'],
             'is_active' => ['nullable','boolean'],
+            'photo'     => ['nullable','image','mimes:jpg,jpeg,png','max:2048'],
         ]);
 
-        $data['is_active'] = (bool)($data['is_active'] ?? true);
+        $data['is_active'] = (bool) ($data['is_active'] ?? true);
+
+        if ($request->hasFile('photo')) {
+            $dir = public_path('uploads/students');
+
+            if (!File::exists($dir)) {
+                File::makeDirectory($dir, 0755, true);
+            }
+
+            $file = $request->file('photo');
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+
+            $file->move($dir, $filename);
+
+            $data['photo'] = 'uploads/students/' . $filename;
+        }
 
         $student = Student::create($data);
 
@@ -68,14 +86,34 @@ class StudentController extends Controller
     public function update(Request $request, Student $student)
     {
         $data = $request->validate([
-            'nis' => ['required','string','max:50', Rule::unique('students','nis')->ignore($student->id)],
-            'name' => ['required','string','max:120'],
-            'kelas' => ['nullable','string','max:50'],
-            'kamar' => ['nullable','string','max:50'],
+            'nis'       => ['required','string','max:50', Rule::unique('students','nis')->ignore($student->id)],
+            'name'      => ['required','string','max:120'],
+            'kelas'     => ['nullable','string','max:50'],
+            'kamar'     => ['nullable','string','max:50'],
             'is_active' => ['nullable','boolean'],
+            'photo'     => ['nullable','image','mimes:jpg,jpeg,png','max:2048'],
         ]);
 
-        $data['is_active'] = (bool)($data['is_active'] ?? false);
+        $data['is_active'] = (bool) ($data['is_active'] ?? false);
+
+        if ($request->hasFile('photo')) {
+            if ($student->photo && file_exists(public_path($student->photo))) {
+                unlink(public_path($student->photo));
+            }
+
+            $dir = public_path('uploads/students');
+
+            if (!File::exists($dir)) {
+                File::makeDirectory($dir, 0755, true);
+            }
+
+            $file = $request->file('photo');
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+
+            $file->move($dir, $filename);
+
+            $data['photo'] = 'uploads/students/' . $filename;
+        }
 
         $student->update($data);
 
@@ -86,6 +124,10 @@ class StudentController extends Controller
 
     public function destroy(Student $student)
     {
+        if ($student->photo && file_exists(public_path($student->photo))) {
+            unlink(public_path($student->photo));
+        }
+
         $student->delete();
 
         return redirect()

@@ -153,9 +153,10 @@
     @forelse($students as $s)
       <div class="student-mobile-card">
         <div class="d-flex gap-3">
-          <div class="student-avatar">
-            {{ strtoupper(substr($s->name, 0, 1)) }}
-          </div>
+        <img src="{{ $s->photoUrl() }}"
+            class="student-avatar"
+            style="object-fit:cover;"
+            alt="{{ $s->name }}">
 
           <div class="flex-grow-1 min-w-0">
             <div class="d-flex justify-content-between gap-2">

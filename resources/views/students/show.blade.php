@@ -21,6 +21,12 @@
 <div class="row g-3">
   <div class="col-md-7">
     <div class="card p-3">
+      <div class="mb-3">
+        <img src="{{ $student->photoUrl() }}"
+            class="rounded"
+            style="width:120px;height:120px;object-fit:cover;"
+            alt="{{ $student->name }}">
+      </div>
       <div class="row g-2">
         <div class="col-6">
           <div class="text-muted small">Kelas</div>

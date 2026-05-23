@@ -58,19 +58,24 @@
       border-radius:12px;
       padding:10px;
     }
+    .logo-app{
+      width:72px;
+      height:72px;
+      object-fit:contain;
+      background:#fff;
+      border-radius:20px;
+      padding:10px;
+      box-shadow:0 10px 25px rgba(0,0,0,.15);
+    }
   </style>
 </head>
 
 <body>
   <div class="card" style="max-width:380px;width:100%;">
     <div class="brand">
-      <svg viewBox="0 0 24 24" fill="none">
-        <path d="M12 3c2 2 3 3.5 3 5.5V10h2.2c1 0 1.8.8 1.8 1.8V21H5V11.8C5 10.8 5.8 10 6.8 10H9V8.5C9 6.5 10 5 12 3Z"
-              stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
-        <path d="M9 21v-6.2c0-1.2 1-2.2 2.2-2.2h1.6c1.2 0 2.2 1 2.2 2.2V21"
-              stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M12 2v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
+    <img src="{{ asset('images/logo.png.png') }}"
+        alt="Logo SIDAPDA"
+        class="logo-app">
 
       <h1>SIDAPDA</h1>
 

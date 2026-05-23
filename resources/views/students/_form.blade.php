@@ -1,4 +1,5 @@
 @csrf
+
 <div class="row g-3">
   <div class="col-md-4">
     <label class="form-label fw-semibold">NIS</label>
@@ -18,6 +19,29 @@
   <div class="col-md-6">
     <label class="form-label fw-semibold">Kamar</label>
     <input name="kamar" value="{{ old('kamar', $student->kamar ?? '') }}" class="form-control" placeholder="contoh: Umar">
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Foto</label>
+
+    <img id="preview"
+        src="{{ $student?->photoUrl() ?? asset('images/default.jpg') }}"
+        style="width:90px;height:90px;object-fit:cover;"
+        class="rounded mb-2">
+
+    <input type="file"
+          name="photo"
+          class="form-control"
+          accept="image/*"
+          onchange="previewImage(event)">
+
+    @if($student && $student->photo)
+      <div class="mt-2">
+        <img src="{{ $student->photoUrl() }}"
+             class="rounded"
+             style="width:90px;height:90px;object-fit:cover;">
+      </div>
+    @endif
   </div>
 
   <div class="col-12">

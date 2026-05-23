@@ -8,7 +8,13 @@ use Illuminate\Support\Str;
 class Student extends Model
 {
     protected $fillable = [
-        'nis','name','kelas','kamar','is_active','qr_token'
+        'nis',
+        'name',
+        'kelas',
+        'kamar',
+        'is_active',
+        'qr_token',
+        'photo',
     ];
 
     protected $casts = [
@@ -19,8 +25,17 @@ class Student extends Model
     {
         static::creating(function (Student $student) {
             if (empty($student->qr_token)) {
-                $student->qr_token = (string) Str::uuid(); // otomatis
+                $student->qr_token = (string) Str::uuid();
             }
         });
+    }
+
+    public function photoUrl(): string
+    {
+        if ($this->photo && file_exists(public_path($this->photo))) {
+            return asset($this->photo);
+        }
+
+        return asset('images/default.jpg');
     }
 }
