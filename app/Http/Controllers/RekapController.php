@@ -28,9 +28,12 @@ class RekapController extends Controller
         $prayerId = (int)($request->input('prayer_id', $defaultPrayer?->id));
 
         $selectedPrayer = $prayers->firstWhere('id', $prayerId) ?: $defaultPrayer;
+        $obligationAt = Carbon::parse(
+            $date.' '.($selectedPrayer?->start_time ?? '23:59:59')
+        );
 
         // Total santri (bisa difilter)
-        $studentsQuery = Student::query()->where('is_active', true);
+        $studentsQuery = Student::query()->obligatedForPrayer($obligationAt);
         if ($groupKelas) $studentsQuery->where('kelas', $groupKelas);
         if ($groupKamar) $studentsQuery->where('kamar', $groupKamar);
         $totalStudents = (clone $studentsQuery)->count();
@@ -48,9 +51,10 @@ class RekapController extends Controller
         $attQuery = Attendance::query()
             ->with(['student'])
             ->when($session, fn($q) => $q->where('attendance_session_id', $session->id))
+            ->whereHas('student', fn ($student) => $student->obligatedForPrayer($obligationAt))
             ->when($groupKelas, fn($q) => $q->whereHas('student', fn($s) => $s->where('kelas', $groupKelas)))
             ->when($groupKamar, fn($q) => $q->whereHas('student', fn($s) => $s->where('kamar', $groupKamar)))
-            ->when($gender, fn ($q) => $q->where('gender', $gender));
+            ->when($gender, fn ($q) => $q->whereHas('student', fn ($student) => $student->where('gender', $gender)));
         $hadirCount = (clone $attQuery)->where('status', 'hadir')->count();
         $terlambatCount = (clone $attQuery)->where('status', 'terlambat')->count();
         $sudahCount = $hadirCount + $terlambatCount;
@@ -65,6 +69,7 @@ class RekapController extends Controller
         $absentStudents = collect();
         if ($session) {
             $presentIds = Attendance::where('attendance_session_id', $session->id)
+                ->whereHas('student', fn ($student) => $student->obligatedForPrayer($obligationAt))
                 ->when($groupKelas || $groupKamar, function ($q) use ($groupKelas, $groupKamar) {
                     $q->whereHas('student', function ($s) use ($groupKelas, $groupKamar) {
                         if ($groupKelas) $s->where('kelas', $groupKelas);
@@ -80,8 +85,10 @@ class RekapController extends Controller
         }
 
         // dropdown filter kelas/kamar dari DB
-        $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-        $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+        $kelasList = Student::query()->obligatedForPrayer($obligationAt)
+            ->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
+        $kamarList = Student::query()->obligatedForPrayer($obligationAt)
+            ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
         $sakitCount = (clone $attQuery)->where('status', 'sakit')->count();
         $udzurCount = (clone $attQuery)->where('status', 'udzur')->count();
@@ -146,6 +153,8 @@ class RekapController extends Controller
         abort(404, 'Sholat tidak ditemukan.');
     }
 
+    $obligationAt = Carbon::parse($date.' '.$selectedPrayer->start_time);
+
     $session = AttendanceSession::firstOrCreate(
         [
             'date' => $date,
@@ -156,7 +165,7 @@ class RekapController extends Controller
         ]
     );
 
-    $students = Student::where('is_active', true)
+    $students = Student::query()->obligatedForPrayer($obligationAt)
         ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
         ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
         ->orderBy('name')
@@ -164,6 +173,7 @@ class RekapController extends Controller
 
     $attendances = Attendance::with('student')
         ->where('attendance_session_id', $session->id)
+        ->whereHas('student', fn ($student) => $student->obligatedForPrayer($obligationAt))
         ->when($kelas, fn ($q) => $q->whereHas('student', fn ($s) => $s->where('kelas', $kelas)))
         ->when($kamar, fn ($q) => $q->whereHas('student', fn ($s) => $s->where('kamar', $kamar)))
         ->get();
@@ -222,6 +232,18 @@ class RekapController extends Controller
                     'status' => 'live',
                 ]
             );
+
+            $student = Student::findOrFail($data['student_id']);
+            $prayer = Prayer::findOrFail($data['prayer_id']);
+            $obligationAt = Carbon::parse($data['date'].' '.$prayer->start_time);
+
+            if (! $student->isObligatedForPrayer($obligationAt)) {
+                $message = $student->isAwayFromBoarding($obligationAt)
+                    ? 'Santri sedang berstatus pulang pada waktu absensi ini.'
+                    : 'Santri tidak mukim tidak memiliki kewajiban absensi salat Pondok.';
+
+                return back()->with('error', $message);
+            }
 
             Attendance::updateOrCreate(
                 [

@@ -4,7 +4,7 @@
     <div class="flex h-24 items-center gap-3 px-6">
         <div class="flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-[1.4rem] bg-white shadow-xl shadow-emerald-300/40 ring-2 ring-emerald-100">
             <img
-                src="{{ asset('images/logo.png.PNG') }}"
+                src="{{ asset('images/logo.png.png') }}"
                 alt="Logo"
                 class="h-10 w-10 object-contain"
             >
@@ -24,6 +24,9 @@
     <nav class="flex-1 space-y-2 overflow-y-auto px-4 pb-6">
 
         @php
+            $currentUser = auth()->user();
+            $accessCodes = $currentUser?->accessibleInstitutionCodes() ?? [];
+
             $menuGroups = [
                 [
                     'label' => 'Dashboard',
@@ -52,7 +55,111 @@
                             'icon' => 'bi-qr-code',
                             'permission' => 'scan_qr',
                         ],
+                        [
+                            'label' => 'Pulang / Kembali Pondok',
+                            'route' => 'boarding-movements.index',
+                            'active' => ['boarding-movements.*'],
+                            'icon' => 'bi-house-door',
+                            'permission' => 'scan_qr',
+                        ],
+                        [
+                            'label' => 'Absensi Ekstrakurikuler',
+                            'route' => 'school-extracurricular-attendance.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-extracurricular-attendance.index', 'school-extracurricular-attendance.store'],
+                            'icon' => 'bi-trophy',
+                            'permission' => 'scan_qr',
+                        ],
+                        [
+                            'label' => 'Izin & Sakit Ekstra',
+                            'route' => 'school-extracurricular-attendance.excuses.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-extracurricular-attendance.excuses.*'],
+                            'icon' => 'bi-file-earmark-medical',
+                            'permission' => 'scan_qr',
+                        ],
+                        [
+                            'label' => 'Absensi Sekolah Pagi',
+                            'route' => 'school-attendance.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-attendance.index', 'school-attendance.store'],
+                            'icon' => 'bi-person-check',
+                            'permission' => 'scan_qr',
+                        ],
+                        [
+                            'label' => 'Izin & Sakit Sekolah',
+                            'route' => 'school-attendance.excuses.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-attendance.excuses.*'],
+                            'icon' => 'bi-file-earmark-medical',
+                            'permission' => 'scan_qr',
+                        ],
+                        [
+                            'label' => 'Absensi Guru Sekolah',
+                            'route' => 'school-teacher-attendance.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-teacher-attendance.index', 'school-teacher-attendance.store'],
+                            'icon' => 'bi-person-badge',
+                            'permission' => 'scan_qr',
+                        ],
+                        [
+                            'label' => 'Izin & Sakit Guru',
+                            'route' => 'school-teacher-attendance.excuses.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-teacher-attendance.excuses.*'],
+                            'icon' => 'bi-file-earmark-medical',
+                            'permission' => 'scan_qr',
+                        ],
                     ],
+                ],
+
+                [
+                    'label' => 'Izin Kegiatan',
+                    'icon' => 'bi-file-earmark-check',
+                    'permission' => 'view_reports',
+                    'children' => [
+                        [
+                            'label' => 'Izin Kegiatan Pondok',
+                            'route' => 'activities.excuses.pondok',
+                            'active' => ['activities.excuses.pondok'],
+                            'icon' => 'bi-house-check',
+                            'permission' => 'view_reports',
+                        ],
+                        [
+                            'label' => 'Izin Kegiatan MADAD',
+                            'route' => 'activities.excuses.madad',
+                            'active' => ['activities.excuses.madad'],
+                            'icon' => 'bi-book',
+                            'permission' => 'view_reports',
+                        ],
+                    ],
+                ],
+
+                [
+                    'label' => 'Rekap Ekstrakurikuler',
+                    'route' => 'school-extracurricular-attendance.reports.index',
+                    'params' => ['institution' => 'sekolah-pagi'],
+                    'active' => ['school-extracurricular-attendance.reports.*'],
+                    'icon' => 'bi-clipboard2-check',
+                    'permission' => 'view_reports',
+                ],
+
+                [
+                    'label' => 'Rekap Siswa Sekolah Pagi',
+                    'route' => 'school-attendance.reports.index',
+                    'params' => ['institution' => 'sekolah-pagi'],
+                    'active' => ['school-attendance.reports.*'],
+                    'icon' => 'bi-clipboard-data',
+                    'permission' => 'view_reports',
+                ],
+
+                [
+                    'label' => 'Rekap Guru Sekolah Pagi',
+                    'route' => 'school-teacher-attendance.reports.index',
+                    'params' => ['institution' => 'sekolah-pagi'],
+                    'active' => ['school-teacher-attendance.reports.*'],
+                    'icon' => 'bi-clipboard-check',
+                    'permission' => 'view_reports',
                 ],
 
                 [
@@ -63,9 +170,44 @@
                         [
                             'label' => 'Data Santri',
                             'route' => 'students.index',
-                            'active' => ['students.*'],
+                            'active' => [
+                                'students.index',
+                                'students.create',
+                                'students.show',
+                                'students.edit',
+                                'students.institutions.*',
+                                'students.import.*',
+                                'students.search.*',
+                                'students.export.*',
+                                'students.qr.*',
+                                'students.id-card*',
+                                'students.attendance.*',
+                            ],
                             'icon' => 'bi-people',
                             'permission' => 'manage_students',
+                        ],
+                        [
+                            'label' => 'Kenaikan Kelas',
+                            'route' => 'students.promotions.index',
+                            'active' => ['students.promotions.*'],
+                            'icon' => 'bi-arrow-up-circle',
+                            'permission' => 'manage_students',
+                        ],
+                        [
+                            'label' => 'Data Guru Sekolah Pagi',
+                            'route' => 'school-teachers.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-teachers.*'],
+                            'icon' => 'bi-person-vcard',
+                            'permission' => 'manage_students',
+                        ],
+                        [
+                            'label' => 'Ekstrakurikuler Sekolah',
+                            'route' => 'school-extracurriculars.index',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-extracurriculars.*'],
+                            'icon' => 'bi-trophy',
+                            'permission' => 'manage_activities',
                         ],
                         [
                             'label' => 'Jadwal Sholat',
@@ -181,18 +323,130 @@
                 [
                     'label' => 'Pengaturan',
                     'icon' => 'bi-gear',
-                    'permission' => 'manage_users',
+                    'permission' => null,
                     'children' => [
+                        [
+                            'label' => 'Profil & WA PONPES',
+                            'route' => 'institution-settings.edit',
+                            'params' => ['institution' => 'ponpes'],
+                            'active' => ['institution-settings.*'],
+                            'icon' => 'bi-building-gear',
+                            'permission' => null,
+                            'settings_access' => true,
+                        ],
+                        [
+                            'label' => 'Profil & WA MI',
+                            'route' => 'institution-settings.edit',
+                            'params' => ['institution' => 'mi'],
+                            'active' => ['institution-settings.*'],
+                            'icon' => 'bi-building-gear',
+                            'permission' => null,
+                            'settings_access' => true,
+                        ],
+                        [
+                            'label' => 'Profil & WA MTs & MA',
+                            'route' => 'institution-settings.edit',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['institution-settings.*'],
+                            'icon' => 'bi-building-gear',
+                            'permission' => null,
+                            'settings_access' => true,
+                        ],
+                        [
+                            'label' => 'Profil & WA MADAD',
+                            'route' => 'institution-settings.edit',
+                            'params' => ['institution' => 'madad'],
+                            'active' => ['institution-settings.*'],
+                            'icon' => 'bi-building-gear',
+                            'permission' => null,
+                            'settings_access' => true,
+                        ],
+                        [
+                            'label' => 'Waktu Absensi MI',
+                            'route' => 'school-attendance-settings.edit',
+                            'params' => ['institution' => 'mi'],
+                            'active' => ['school-attendance-settings.*'],
+                            'icon' => 'bi-clock-history',
+                            'permission' => 'manage_users',
+                        ],
+                        [
+                            'label' => 'Waktu Sekolah Pagi',
+                            'route' => 'school-attendance-settings.edit',
+                            'params' => ['institution' => 'sekolah-pagi'],
+                            'active' => ['school-attendance-settings.*'],
+                            'icon' => 'bi-alarm',
+                            'permission' => 'manage_users',
+                        ],
                         [
                             'label' => 'Users',
                             'route' => 'users.index',
                             'active' => ['users.*'],
                             'icon' => 'bi-person-gear',
                             'permission' => 'manage_users',
+                            'admin_only' => true,
                         ],
                     ],
                 ],
             ];
+
+            $requiredCodesFor = function (array $item): array {
+                $route = $item['route'] ?? '';
+                $params = $item['params'] ?? [];
+
+                if (! empty($params['institution'])) {
+                    return [(string) $params['institution']];
+                }
+
+                if (str_starts_with($route, 'students.')) {
+                    return ['ponpes', 'mi', 'sekolah-pagi', 'madad'];
+                }
+
+                if (str_starts_with($route, 'activities.')) {
+                    if (($params['category'] ?? null) === 'diniyah' || $route === 'activities.excuses.madad') {
+                        return ['madad'];
+                    }
+                    if (($params['category'] ?? null) === 'umum' || $route === 'activities.excuses.pondok') {
+                        return ['ponpes'];
+                    }
+
+                    return ['ponpes', 'madad'];
+                }
+
+                return match (true) {
+                    str_starts_with($route, 'scan.') => ['ponpes'],
+                    str_starts_with($route, 'boarding-movements.') => ['ponpes'],
+                    str_starts_with($route, 'prayers.') => ['ponpes'],
+                    str_starts_with($route, 'rekap-diniyah.') => ['madad'],
+                    str_starts_with($route, 'rekap-kegiatan.') => ['ponpes'],
+                    str_starts_with($route, 'rekap.') => ['ponpes'],
+                    default => [],
+                };
+            };
+
+            $canAccessMenuItem = function (array $item) use ($currentUser, $accessCodes, $requiredCodesFor): bool {
+                if (($item['admin_only'] ?? false) && ! $currentUser?->hasRole('admin')) {
+                    return false;
+                }
+
+                if (! empty($item['permission']) && ! $currentUser?->can($item['permission'])) {
+                    return false;
+                }
+
+                if (! empty($item['settings_access'])) {
+                    $code = $item['params']['institution'] ?? null;
+                    $settingsInstitution = $code
+                        ? \App\Models\Institution::query()->where('code', $code)->first()
+                        : null;
+
+                    if (! $settingsInstitution || ! $currentUser?->canManageInstitutionSettings($settingsInstitution)) {
+                        return false;
+                    }
+                }
+
+                $requiredCodes = $requiredCodesFor($item);
+
+                return $requiredCodes === [] || array_intersect($requiredCodes, $accessCodes) !== [];
+            };
         @endphp
 
         @foreach($menuGroups as $menu)
@@ -200,10 +454,12 @@
                 $hasChildren = isset($menu['children']);
 
                 $visibleChildren = $hasChildren
-                    ? collect($menu['children'])->filter(fn ($child) => ! $child['permission'] || auth()->user()?->can($child['permission']))
+                    ? collect($menu['children'])->filter($canAccessMenuItem)
                     : collect();
 
-                $canShowMenu = ! $menu['permission'] || auth()->user()?->can($menu['permission']) || $visibleChildren->isNotEmpty();
+                $canShowMenu = $hasChildren
+                    ? $visibleChildren->isNotEmpty()
+                    : $canAccessMenuItem($menu);
 
                 $isActive = false;
 
@@ -262,7 +518,7 @@
                                 @endphp
 
                                 <a
-                                    href="{{ route($child['route']) }}"
+                                    href="{{ route($child['route'], $child['params'] ?? []) }}"
                                     class="group flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200
                                     {{ $childActive
                                         ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
@@ -286,7 +542,7 @@
                     </details>
                 @else
                     <a
-                        href="{{ route($menu['route']) }}"
+                        href="{{ route($menu['route'], $menu['params'] ?? []) }}"
                         class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-200
                         {{ $isActive
                             ? 'bg-gradient-to-r from-emerald-600 to-lime-500 text-white shadow-lg shadow-emerald-300/50'

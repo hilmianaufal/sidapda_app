@@ -61,7 +61,7 @@
 
 <x-ui.card class="mb-8">
     <form method="GET">
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
 
             <x-ui.form-group label="Tanggal">
                 <x-ui.input
@@ -79,7 +79,16 @@
                 </x-ui.select>
             </x-ui.form-group>
 
-            <x-ui.form-group label="Jenjang">
+            <x-ui.form-group label="Jenjang MADAD">
+                <x-ui.select name="level">
+                    <option value="">Semua</option>
+                    @foreach($levelList as $item)
+                        <option value="{{ $item }}" @selected($level === $item)>{{ $item }}</option>
+                    @endforeach
+                </x-ui.select>
+            </x-ui.form-group>
+
+            <x-ui.form-group label="Kelas MADAD">
                 <x-ui.select name="kelas">
                     <option value="">Semua</option>
 
@@ -196,7 +205,8 @@
 
                                     <div class="mt-1 text-sm font-semibold text-slate-500">
                                         {{ $student->nis }}
-                                        • {{ $student->kelas ?? '-' }}
+                                        • {{ $student->institution_level ?: 'Belum ada jenjang' }}
+                                        / Kelas {{ $student->institution_class ?: '-' }}
                                         • {{ $student->kamar ?? '-' }}
                                     </div>
 

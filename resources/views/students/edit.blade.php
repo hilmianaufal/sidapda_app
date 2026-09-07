@@ -52,19 +52,21 @@
               placeholder="Nomor induk santri" />
           </x-ui.form-group>
 
-          <x-ui.form-group label="Jenjang">
-            <x-ui.input
-              name="kelas"
-              :value="old('kelas', $student->kelas)"
-              placeholder="Contoh: Kelas 8" />
-          </x-ui.form-group>
+          @if(auth()->user()->hasRole('admin') || auth()->user()->canAccessInstitution('ponpes'))
+            <x-ui.form-group label="Jenjang Pondok">
+              <x-ui.input
+                name="kelas"
+                :value="old('kelas', $student->kelas)"
+                placeholder="Contoh: Kelas 8" />
+            </x-ui.form-group>
 
-          <x-ui.form-group label="Kamar">
-            <x-ui.input
-              name="kamar"
-              :value="old('kamar', $student->kamar)"
-              placeholder="Contoh: Al Mukaromah" />
-          </x-ui.form-group>
+            <x-ui.form-group label="Kamar">
+              <x-ui.input
+                name="kamar"
+                :value="old('kamar', $student->kamar)"
+                placeholder="Contoh: Al Mukaromah" />
+            </x-ui.form-group>
+          @endif
 
             <x-ui.form-group label="Jenis Santri">
             <x-ui.select name="gender">
@@ -80,6 +82,19 @@
             </x-ui.select>
             </x-ui.form-group>
 
+            @if(auth()->user()->hasRole('admin') || auth()->user()->canAccessInstitution('ponpes'))
+              <x-ui.form-group label="Status Tempat Tinggal">
+                <x-ui.select name="residency_status">
+                  <option value="mukim" @selected(old('residency_status', $student->residency_status) === 'mukim')>
+                    Mukim di Pondok
+                  </option>
+                  <option value="non_mukim" @selected(old('residency_status', $student->residency_status) === 'non_mukim')>
+                    Tidak Mukim
+                  </option>
+                </x-ui.select>
+              </x-ui.form-group>
+            @endif
+
         <x-ui.form-group label="Nomor WhatsApp Ortu">
           <x-ui.input
             name="parent_phone"
@@ -87,18 +102,20 @@
             placeholder="6281234567890" />
         </x-ui.form-group>
 
-          <div class="md:col-span-2">
-            <x-ui.form-group label="Status">
-              <x-ui.select name="is_active">
-                <option value="1" @selected(old('is_active', $student->is_active) == 1)>
-                  Aktif
-                </option>
-                <option value="0" @selected(old('is_active', $student->is_active) == 0)>
-                  Nonaktif
-                </option>
-              </x-ui.select>
-            </x-ui.form-group>
-          </div>
+          @if(auth()->user()->hasRole('admin'))
+            <div class="md:col-span-2">
+              <x-ui.form-group label="Status">
+                <x-ui.select name="is_active">
+                  <option value="1" @selected(old('is_active', $student->is_active) == 1)>
+                    Aktif
+                  </option>
+                  <option value="0" @selected(old('is_active', $student->is_active) == 0)>
+                    Nonaktif
+                  </option>
+                </x-ui.select>
+              </x-ui.form-group>
+            </div>
+          @endif
 
         </div>
 

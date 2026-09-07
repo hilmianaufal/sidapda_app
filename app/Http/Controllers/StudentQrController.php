@@ -118,7 +118,7 @@ class StudentQrController extends Controller
                 abort(500, 'Font belum tersedia. Simpan arial.ttf dan arialbd.ttf di public/fonts.');
             }
 
-            $logoPath = public_path('images/logo.png.PNG');
+            $logoPath = public_path('images/logo.png.png');
             $photoPath = $student->photo && file_exists(public_path($student->photo))
                 ? public_path($student->photo)
                 : public_path('images/default.jpg');

@@ -37,6 +37,7 @@
           type="week"
           name="week"
           value="{{ $week }}" />
+        <div class="mt-2 text-xs font-bold text-emerald-700">Periode: Sabtu–Jumat</div>
       </div>
 
       <div>

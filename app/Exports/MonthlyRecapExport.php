@@ -44,13 +44,14 @@ class MonthlyRecapExport implements FromArray, WithHeadings
         $expectedPerStudent = $daysInMonth * max(1, $prayerCount);
 
         // Base: santri aktif + filter
-        $studentsQuery = Student::query()->where('is_active', true);
+        $studentsQuery = Student::query()->obligatedForPrayer();
         if ($this->kelas) $studentsQuery->where('kelas', $this->kelas);
         if ($this->kamar) $studentsQuery->where('kamar', $this->kamar);
 
         // Aggregasi scan per santri di bulan tsb
         $stats = Attendance::query()
             ->join('attendance_sessions', 'attendance_sessions.id', '=', 'attendances.attendance_session_id')
+            ->whereHas('student', fn ($student) => $student->obligatedForPrayer())
             ->select([
                 'attendances.student_id',
                 DB::raw("SUM(CASE WHEN attendances.status='hadir' THEN 1 ELSE 0 END) as hadir"),

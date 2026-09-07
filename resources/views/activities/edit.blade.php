@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title','Edit Kegiatan')
-@section('mobile_title','Edit Kegiatan')
+@section('title', $activity->category === 'diniyah' ? 'Edit Kegiatan MADAD' : 'Edit Kegiatan')
+@section('mobile_title', $activity->category === 'diniyah' ? 'Edit MADAD' : 'Edit Kegiatan')
 
 @section('content')
 
 <x-ui.page-header
-  title="Edit Kegiatan"
+  :title="$activity->category === 'diniyah' ? 'Edit Kegiatan MADAD' : 'Edit Kegiatan'"
   subtitle="{{ $activity->name }}"
   icon="bi-pencil-square"
 >
   <x-slot:actions>
-    <x-ui.button :href="route('activities.index')" variant="secondary">
+    <x-ui.button :href="route('activities.index', array_filter(['category' => $returnCategory ?? null]))" variant="secondary">
       Kembali
     </x-ui.button>
   </x-slot:actions>
@@ -46,13 +46,17 @@
           </div>
             <x-ui.form-group label="Kategori Kegiatan">
             <x-ui.select name="category">
-                <option value="umum" @selected(old('category', $activity->category ?? 'umum') === 'umum')>
-                Kegiatan Umum
-                </option>
+                @if(auth()->user()->canAccessInstitution('ponpes'))
+                  <option value="umum" @selected(old('category', $activity->category ?? 'umum') === 'umum')>
+                  Kegiatan Umum
+                  </option>
+                @endif
 
-                <option value="diniyah" @selected(old('category', $activity->category ?? 'umum') === 'diniyah')>
-                Kegiatan Diniyah
-                </option>
+                @if(auth()->user()->canAccessInstitution('madad'))
+                  <option value="diniyah" @selected(old('category', $activity->category ?? 'umum') === 'diniyah')>
+                  Kegiatan Diniyah
+                  </option>
+                @endif
             </x-ui.select>
             </x-ui.form-group>
           <x-ui.form-group label="Tipe Kegiatan" required>

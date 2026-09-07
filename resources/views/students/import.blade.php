@@ -46,6 +46,23 @@
       <form method="POST" action="{{ route('students.import') }}" enctype="multipart/form-data">
         @csrf
 
+        <div class="mb-5">
+          <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+            Masukkan ke Lembaga
+          </label>
+          <x-ui.select name="institution_id" required>
+            <option value="">Pilih lembaga tujuan</option>
+            @foreach($institutions as $institution)
+              <option value="{{ $institution->id }}" @selected((int) old('institution_id', $selectedInstitutionId) === (int) $institution->id)>
+                {{ $institution->short_name }} — {{ $institution->name }}
+              </option>
+            @endforeach
+          </x-ui.select>
+          <div class="mt-2 text-xs font-semibold text-slate-500">
+            Jalankan import terpisah jika siswa mengikuti lebih dari satu lembaga. NIS yang sama tidak membuat QR baru.
+          </div>
+        </div>
+
         <label class="block cursor-pointer rounded-[2rem] border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center transition hover:bg-emerald-50">
           <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-3xl text-emerald-600 shadow-xl shadow-emerald-100">
             <i class="bi bi-cloud-arrow-up"></i>
@@ -114,23 +131,39 @@
               <td class="px-4 py-3">Ahmad Fauzan</td>
             </tr>
             <tr>
-              <td class="px-4 py-3 font-black text-slate-900">jenjang</td>
-              <td class="px-4 py-3">12 IPS</td>
+              <td class="px-4 py-3 font-black text-slate-900">kelas</td>
+              <td class="px-4 py-3">7A</td>
             </tr>
             <tr>
               <td class="px-4 py-3 font-black text-slate-900">kamar</td>
               <td class="px-4 py-3">Ruqoyah</td>
             </tr>
             <tr>
+              <td class="px-4 py-3 font-black text-slate-900">jenis_santri</td>
+              <td class="px-4 py-3">putra</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-black text-slate-900">status_mukim</td>
+              <td class="px-4 py-3">mukim</td>
+            </tr>
+            <tr>
               <td class="px-4 py-3 font-black text-slate-900">wa_ortu</td>
               <td class="px-4 py-3">6281234567890</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-black text-slate-900">kelas_lembaga</td>
+              <td class="px-4 py-3">7A</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-black text-slate-900">jenjang_lembaga</td>
+              <td class="px-4 py-3">Ula</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-700">
-        Header wajib menggunakan huruf kecil sesuai format di atas.
+        Header wajib menggunakan huruf kecil sesuai format di atas. Khusus MADAD, kolom jenjang_lembaga wajib berisi Ula, Wustha, atau Ulya.
       </div>
     </x-ui.card>
   </div>

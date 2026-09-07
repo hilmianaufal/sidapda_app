@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title','Tambah Kegiatan')
-@section('mobile_title','Tambah Kegiatan')
+@section('title', ($category ?? null) === 'diniyah' ? 'Tambah Kegiatan MADAD' : 'Tambah Kegiatan')
+@section('mobile_title', ($category ?? null) === 'diniyah' ? 'Tambah MADAD' : 'Tambah Kegiatan')
 
 @section('content')
 
 <x-ui.page-header
-  title="Tambah Kegiatan"
-  subtitle="Buat jadwal kegiatan baru"
-  icon="bi-calendar-plus"
+  :title="($category ?? null) === 'diniyah' ? 'Tambah Kegiatan MADAD' : 'Tambah Kegiatan'"
+  :subtitle="($category ?? null) === 'diniyah' ? 'Buat jadwal khusus kegiatan Diniyah' : 'Buat jadwal kegiatan baru'"
+  :icon="($category ?? null) === 'diniyah' ? 'bi-book' : 'bi-calendar-plus'"
 >
   <x-slot:actions>
-    <x-ui.button :href="route('activities.index')" variant="secondary">
+    <x-ui.button :href="route('activities.index', array_filter(['category' => $category ?? null]))" variant="secondary">
       Kembali
     </x-ui.button>
   </x-slot:actions>
@@ -46,13 +46,17 @@
             <x-ui.form-group label="Kategori">
                 <x-ui.select name="category">
 
-                    <option value="umum">
-                        Kegiatan Umum
-                    </option>
+                    @if(auth()->user()->canAccessInstitution('ponpes'))
+                      <option value="umum" @selected(old('category', $category ?? 'umum') === 'umum')>
+                          Kegiatan Umum
+                      </option>
+                    @endif
 
-                    <option value="diniyah">
-                        Kegiatan Diniyah
-                    </option>
+                    @if(auth()->user()->canAccessInstitution('madad'))
+                      <option value="diniyah" @selected(old('category', $category ?? 'umum') === 'diniyah')>
+                          Kegiatan Diniyah
+                      </option>
+                    @endif
 
                 </x-ui.select>
             </x-ui.form-group>

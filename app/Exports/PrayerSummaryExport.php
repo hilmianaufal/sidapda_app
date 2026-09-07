@@ -45,11 +45,12 @@ class PrayerSummaryExport implements FromArray, WithHeadings
     public function array(): array
     {
         $start = Carbon::parse($this->startDate)->startOfDay();
-        $end = Carbon::parse($this->endDate)->endOfDay();
+        $endDate = Carbon::parse($this->endDate)->startOfDay();
+        $end = $endDate->copy()->endOfDay();
 
         $prayers = Prayer::where('is_active', true)->orderBy('order')->get();
 
-        $students = Student::where('is_active', true)
+        $students = Student::query()->obligatedForPrayer()
             ->when($this->gender, fn ($q) => $q->where('gender', $this->gender))
             ->when($this->kelas, fn ($q) => $q->where('kelas', $this->kelas))
             ->when($this->kamar, fn ($q) => $q->where('kamar', $this->kamar))
@@ -65,8 +66,10 @@ class PrayerSummaryExport implements FromArray, WithHeadings
 
         $attendances = Attendance::whereIn('attendance_session_id', $sessionIds)->get();
 
-        $days = $start->diffInDays($end) + 1;
-        $target = $prayers->count() * $days;
+        // Carbon 3 mengembalikan pecahan hari bila dibandingkan dengan endOfDay.
+        // Bandingkan tanggal pada jam yang sama agar harian = 1 dan mingguan = 7.
+        $days = (int) $start->diffInDays($endDate) + 1;
+        $target = (int) $prayers->count() * $days;
 
         $rows = [];
 

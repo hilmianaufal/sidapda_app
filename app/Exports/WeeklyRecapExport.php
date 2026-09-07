@@ -6,7 +6,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceSession;
 use App\Models\Prayer;
 use App\Models\Student;
-use Illuminate\Support\Carbon;
+use App\Support\ReportingWeek;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -40,13 +40,12 @@ class WeeklyRecapExport implements FromArray, WithHeadings
 
     public function array(): array
     {
-        $start = Carbon::parse(str_replace('-W', 'W', $this->week))->startOfWeek();
-        $end = $start->copy()->endOfWeek();
+        [$start, $end] = ReportingWeek::fromKey($this->week);
 
         $prayer = Prayer::find($this->prayerId);
 
         $students = Student::query()
-            ->where('is_active', true)
+            ->obligatedForPrayer()
             ->when($this->kelas, fn ($q) => $q->where('kelas', $this->kelas))
             ->when($this->kamar, fn ($q) => $q->where('kamar', $this->kamar))
             ->orderBy('name')

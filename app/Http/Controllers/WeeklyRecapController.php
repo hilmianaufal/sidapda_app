@@ -7,21 +7,20 @@ use App\Models\Attendance;
 use App\Models\AttendanceSession;
 use App\Models\Prayer;
 use App\Models\Student;
+use App\Support\ReportingWeek;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 
 class WeeklyRecapController extends Controller
 {
     public function index(Request $request)
     {
-        $week = $request->input('week', now()->format('Y-\WW'));
+        $week = $request->input('week', ReportingWeek::currentKey());
         $kelas = $request->input('kelas');
         $kamar = $request->input('kamar');
         $prayerId = $request->input('prayer_id');
 
-        $start = Carbon::parse(str_replace('-W', 'W', $week))->startOfWeek();
-        $end = $start->copy()->endOfWeek();
+        [$start, $end] = ReportingWeek::fromKey($week);
 
         $prayers = Prayer::where('is_active', true)->orderBy('order')->get();
         $selectedPrayer = $prayerId
@@ -29,7 +28,7 @@ class WeeklyRecapController extends Controller
             : $prayers->first();
 
         $studentsQuery = Student::query()
-            ->where('is_active', true)
+            ->obligatedForPrayer()
             ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
             ->when($kamar, fn ($q) => $q->where('kamar', $kamar));
 
@@ -46,6 +45,7 @@ class WeeklyRecapController extends Controller
 
         $attendances = Attendance::with('student')
             ->whereIn('attendance_session_id', $sessionIds)
+            ->whereHas('student', fn ($student) => $student->obligatedForPrayer())
             ->when($kelas, fn ($q) => $q->whereHas('student', fn ($s) => $s->where('kelas', $kelas)))
             ->when($kamar, fn ($q) => $q->whereHas('student', fn ($s) => $s->where('kamar', $kamar)))
             ->get();
@@ -60,8 +60,10 @@ class WeeklyRecapController extends Controller
         $recorded = $hadirCount + $terlambatCount + $udzurCount + $sakitCount + $pulangCount;
         $alpaCount = max(0, $expected - $recorded);
 
-        $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-        $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+        $kelasList = Student::query()->obligatedForPrayer()
+            ->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
+        $kamarList = Student::query()->obligatedForPrayer()
+            ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
         return view('rekap.weekly', compact(
             'week',
@@ -90,7 +92,7 @@ class WeeklyRecapController extends Controller
 
         public function exportExcel(Request $request)
     {
-        $week = $request->input('week', now()->format('Y-\WW'));
+        $week = $request->input('week', ReportingWeek::currentKey());
         $kelas = $request->input('kelas');
         $kamar = $request->input('kamar');
 

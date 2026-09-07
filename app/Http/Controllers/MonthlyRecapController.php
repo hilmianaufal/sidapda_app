@@ -33,11 +33,13 @@ class MonthlyRecapController extends Controller
         $expectedPerStudent = $daysInMonth * max(1, $prayerCount); // minimal 1 biar aman
 
         // filter dropdown
-        $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-        $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+        $kelasList = Student::query()->obligatedForPrayer()
+            ->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
+        $kamarList = Student::query()->obligatedForPrayer()
+            ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
         // Query santri aktif
-        $studentsQuery = Student::query()->where('is_active', true);
+        $studentsQuery = Student::query()->obligatedForPrayer();
         if ($kelas) $studentsQuery->where('kelas', $kelas);
         if ($kamar) $studentsQuery->where('kamar', $kamar);
 
@@ -45,6 +47,7 @@ class MonthlyRecapController extends Controller
         // join: attendances -> attendance_sessions (date filter)
         $stats = Attendance::query()
             ->join('attendance_sessions', 'attendance_sessions.id', '=', 'attendances.attendance_session_id')
+            ->whereHas('student', fn ($student) => $student->obligatedForPrayer())
             ->select([
                 'attendances.student_id',
                 DB::raw("SUM(CASE WHEN attendances.status='hadir' THEN 1 ELSE 0 END) as hadir"),
@@ -128,12 +131,13 @@ public function exportPdf(Request $request)
     $expectedPerStudent = $daysInMonth * max(1, $prayerCount);
 
     // Ambil data sama seperti halaman (tanpa paginate biar full export)
-    $studentsQuery = \App\Models\Student::query()->where('is_active', true);
+    $studentsQuery = \App\Models\Student::query()->obligatedForPrayer();
     if ($kelas) $studentsQuery->where('kelas', $kelas);
     if ($kamar) $studentsQuery->where('kamar', $kamar);
 
     $stats = \App\Models\Attendance::query()
         ->join('attendance_sessions', 'attendance_sessions.id', '=', 'attendances.attendance_session_id')
+        ->whereHas('student', fn ($student) => $student->obligatedForPrayer())
         ->select([
             'attendances.student_id',
             \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN attendances.status='hadir' THEN 1 ELSE 0 END) as hadir"),

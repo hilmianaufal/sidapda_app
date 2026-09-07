@@ -21,41 +21,98 @@
   icon="bi-speedometer2"
 >
   <x-slot:actions>
-    <x-ui.button :href="route('scan.index')" variant="secondary">
-      <i class="bi bi-qr-code-scan"></i>
-      Scan QR
-    </x-ui.button>
+    @if($hasPonpesAccess)
+      <x-ui.button :href="route('scan.index')" variant="secondary">
+        <i class="bi bi-qr-code-scan"></i>
+        Scan QR
+      </x-ui.button>
+    @endif
   </x-slot:actions>
 </x-ui.page-header>
+
+{{-- Dashboard lembaga --}}
+<div class="mb-6">
+  <div class="mb-3 flex items-end justify-between gap-3">
+    <div>
+      <div class="text-lg font-black text-slate-900">Dashboard Lembaga</div>
+      <div class="text-sm font-medium text-slate-500">Pilih unit SIDAPDA • {{ $academicYear }}</div>
+    </div>
+    <x-ui.badge tone="emerald">{{ $institutions->count() }} Unit</x-ui.badge>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @if($institutions->isEmpty())
+      <div class="rounded-[1.6rem] border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-700 sm:col-span-2 xl:col-span-4">
+        Akun ini belum diberi akses lembaga. Hubungi admin untuk memilih lembaga pada menu Pengaturan → Users.
+      </div>
+    @endif
+    @foreach($institutions as $institution)
+      @php
+        $styles = match($institution->code) {
+          'mi' => ['box' => 'border-blue-100 bg-blue-50', 'icon' => 'bg-blue-500', 'text' => 'text-blue-700'],
+          'sekolah-pagi' => ['box' => 'border-purple-100 bg-purple-50', 'icon' => 'bg-purple-500', 'text' => 'text-purple-700'],
+          'madad' => ['box' => 'border-amber-100 bg-amber-50', 'icon' => 'bg-amber-500', 'text' => 'text-amber-700'],
+          default => ['box' => 'border-emerald-100 bg-emerald-50', 'icon' => 'bg-emerald-600', 'text' => 'text-emerald-700'],
+        };
+      @endphp
+
+      <a href="{{ route('dashboard.institution', $institution) }}"
+         class="group rounded-[1.6rem] border p-4 transition hover:-translate-y-1 hover:shadow-xl {{ $styles['box'] }}">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl text-xl text-white shadow-lg {{ $styles['icon'] }}">
+            @if($institution->logoUrl())
+              <img src="{{ $institution->logoUrl() }}" alt="Logo {{ $institution->short_name }}" class="h-10 w-10 rounded-xl bg-white object-contain p-1">
+            @else
+              <i class="bi {{ $institution->icon }}"></i>
+            @endif
+          </div>
+          <i class="bi bi-arrow-up-right text-lg {{ $styles['text'] }}"></i>
+        </div>
+        <div class="mt-4 font-black text-slate-900">{{ $institution->short_name }}</div>
+        <div class="mt-1 min-h-10 text-xs font-semibold text-slate-500">{{ $institution->name }}</div>
+        <div class="mt-3 text-xs font-black {{ $styles['text'] }}">
+          {{ $institution->active_students_count }} siswa aktif
+        </div>
+      </a>
+    @endforeach
+  </div>
+</div>
 
 {{-- Menu cepat --}}
 <div class="mb-6 grid grid-cols-4 gap-3 lg:grid-cols-8">
   @can('scan_qr')
-    <a href="{{ route('scan.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
-      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white">
-        <i class="bi bi-qr-code-scan"></i>
-      </div>
-      <div class="mt-2 text-xs font-black text-slate-700">Scan</div>
-    </a>
+    @if($hasPonpesAccess)
+      <a href="{{ route('scan.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white">
+          <i class="bi bi-qr-code-scan"></i>
+        </div>
+        <div class="mt-2 text-xs font-black text-slate-700">Scan</div>
+      </a>
+    @endif
 
-    <a href="{{ route('activities.scan') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
-      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-50 text-xl text-lime-600 group-hover:bg-lime-500 group-hover:text-white">
-        <i class="bi bi-qr-code"></i>
-      </div>
-      <div class="mt-2 text-xs font-black text-slate-700">Kegiatan</div>
-    </a>
+    @if($hasPonpesAccess || $hasMadadAccess)
+      <a href="{{ route('activities.scan', $hasMadadAccess && !$hasPonpesAccess ? ['category' => 'diniyah'] : []) }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-50 text-xl text-lime-600 group-hover:bg-lime-500 group-hover:text-white">
+          <i class="bi bi-qr-code"></i>
+        </div>
+        <div class="mt-2 text-xs font-black text-slate-700">Kegiatan</div>
+      </a>
+    @endif
   @endcan
 
   @can('manage_students')
-    <a href="{{ route('students.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
+    @if($institutions->isNotEmpty())
+    <a href="{{ route('students.index', $institutions->count() === 1 ? ['institution_id' => $institutions->first()->id] : []) }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white">
         <i class="bi bi-people"></i>
       </div>
       <div class="mt-2 text-xs font-black text-slate-700">Santri</div>
     </a>
+    @endif
   @endcan
 
   @can('view_reports')
+    @if($hasPonpesAccess)
     <a href="{{ route('rekap.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white">
         <i class="bi bi-clipboard-data"></i>
@@ -88,42 +145,48 @@
   </div>
   <div class="mt-2 text-xs font-black text-slate-700">Rekap Kegiatan</div>
 </a>
-<a href="{{ route('students.import.form') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
+    @endif
+    @if($institutions->isNotEmpty() && auth()->user()->can('manage_students'))
+<a href="{{ route('students.import.form', $institutions->count() === 1 ? ['institution_id' => $institutions->first()->id] : []) }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
   <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-xl text-green-600 group-hover:bg-green-500 group-hover:text-white">
     <i class="bi bi-file-earmark-spreadsheet"></i>
   </div>
   <div class="mt-2 text-xs font-black text-slate-700">Import</div>
 </a>
+    @endif
   @endcan
 
   @can('manage_prayers')
+    @if($hasPonpesAccess)
     <a href="{{ route('prayers.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-xl text-slate-600 group-hover:bg-slate-800 group-hover:text-white">
         <i class="bi bi-clock-history"></i>
       </div>
       <div class="mt-2 text-xs font-black text-slate-700">Jadwal</div>
     </a>
-
-
+    @endif
   @endcan
 @can('manage_activities')
-  <a href="{{ route('activities.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
+  @if($hasPonpesAccess || $hasMadadAccess)
+  <a href="{{ route('activities.index', $hasMadadAccess && !$hasPonpesAccess ? ['category' => 'diniyah'] : []) }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
     <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white">
       <i class="bi bi-calendar-check"></i>
     </div>
     <div class="mt-2 text-xs font-black text-slate-700">Aktivitas</div>
   </a>
+  @endif
 @endcan
-  @can('manage_users')
+  @role('admin')
     <a href="{{ route('users.index') }}" class="group rounded-[1.5rem] bg-white p-3 text-center shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-xl text-red-600 group-hover:bg-red-500 group-hover:text-white">
         <i class="bi bi-person-gear"></i>
       </div>
       <div class="mt-2 text-xs font-black text-slate-700">Users</div>
     </a>
-  @endcan
+  @endrole
 </div>
 
+@if($hasPonpesAccess)
 {{-- Status sholat aktif --}}
 @if($activePrayer)
   <div class="mb-6 rounded-[1.75rem] border border-emerald-200 bg-gradient-to-r from-emerald-50 to-lime-50 p-4 shadow-lg shadow-emerald-100">
@@ -256,9 +319,12 @@
   </div>
 </x-ui.card>
 
+@endif
+
 @endsection
 
 @push('scripts')
+@if($hasPonpesAccess)
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
@@ -319,4 +385,5 @@
     }
   });
 </script>
+@endif
 @endpush

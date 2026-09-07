@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Student;
 use App\Models\Attendance;
+use App\Models\Institution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Models\AttendanceSession;
 use App\Services\PrayerTimeService;
 use App\Services\AttendanceSessionService;
+use App\Services\StudentWhatsappNotifier;
 
 class QrScanController extends Controller
 {
@@ -20,7 +22,12 @@ class QrScanController extends Controller
         return view('scan.index', compact('activePrayer'));
     }
 
-   public function store(Request $request, PrayerTimeService $prayerService, AttendanceSessionService $sessionService)
+   public function store(
+        Request $request,
+        PrayerTimeService $prayerService,
+        AttendanceSessionService $sessionService,
+        StudentWhatsappNotifier $whatsapp
+    )
     {
         $data = $request->validate([
             'token' => ['required','string'],
@@ -48,6 +55,17 @@ class QrScanController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Santri nonaktif. Hubungi admin.',
+            ], 422);
+        }
+
+        if (! $student->isObligatedForPrayer()) {
+            $message = $student->isAwayFromBoarding()
+                ? 'Santri sedang berstatus pulang. Scan kembali ke Pondok terlebih dahulu.'
+                : 'Santri tidak mukim tidak memiliki kewajiban absensi salat Pondok.';
+
+            return response()->json([
+                'ok' => false,
+                'message' => $message,
             ], 422);
         }
 
@@ -97,6 +115,18 @@ class QrScanController extends Controller
             'scanned_at' => now(),
             'status' => $status,
         ]);
+
+        $institution = Institution::query()->where('code', 'ponpes')->first();
+        if ($institution) {
+            $whatsapp->attendance(
+                $institution,
+                $student,
+                'Salat',
+                $activePrayer->name,
+                $status,
+                $attendance->scanned_at
+            );
+        }
 
         return response()->json([
             'ok' => true,

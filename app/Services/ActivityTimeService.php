@@ -7,7 +7,7 @@ use Illuminate\Support\Carbon;
 
 class ActivityTimeService
 {
-    public function getActiveActivity(): ?Activity
+    public function getActiveActivity(?string $category = null): ?Activity
     {
         $now = Carbon::now();
 
@@ -16,6 +16,7 @@ class ActivityTimeService
         $todayDay = $now->dayOfWeek;
 
         return Activity::where('is_active', true)
+            ->when($category, fn ($query) => $query->where('category', $category))
             ->where(function ($q) use ($todayDay, $todayDate) {
 
                 // kegiatan rutin

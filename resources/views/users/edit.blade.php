@@ -65,7 +65,7 @@
           </x-ui.form-group>
 
           <x-ui.form-group label="Role" required>
-            <x-ui.select name="role">
+            <x-ui.select name="role" id="userRoleSelect">
               @foreach($roles as $r)
                 <option value="{{ $r }}" @selected(old('role', $currentRole) === $r)>
                   {{ $r }}
@@ -95,6 +95,8 @@
 
         </div>
       </x-ui.card>
+
+      @include('users.partials.institution-access')
 
     </div>
 
@@ -193,5 +195,14 @@ document.getElementById('avatarInput')?.addEventListener('change', function(e) {
 
   document.getElementById('previewImage').src = URL.createObjectURL(file);
 });
+
+function toggleInstitutionAccess() {
+  const isAdmin = document.getElementById('userRoleSelect')?.value === 'admin';
+  document.getElementById('adminAccessNotice')?.classList.toggle('hidden', !isAdmin);
+  document.getElementById('institutionAccessOptions')?.classList.toggle('opacity-50', isAdmin);
+}
+
+document.getElementById('userRoleSelect')?.addEventListener('change', toggleInstitutionAccess);
+toggleInstitutionAccess();
 </script>
 @endpush

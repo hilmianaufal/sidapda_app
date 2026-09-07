@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceSession;
 use App\Models\Prayer;
 use App\Models\Student;
+use App\Support\ReportingWeek;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -24,7 +25,7 @@ class PrayerSummaryController extends Controller
             ->get();
 
         $students = Student::query()
-            ->where('is_active', true)
+            ->obligatedForPrayer()
             ->when($gender, fn ($q) => $q->where('gender', $gender))
             ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
             ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
@@ -77,8 +78,10 @@ class PrayerSummaryController extends Controller
             'alpa' => $rows->sum('alpa'),
         ];
 
-        $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-        $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+        $kelasList = Student::query()->obligatedForPrayer()
+            ->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
+        $kamarList = Student::query()->obligatedForPrayer()
+            ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
         return view('rekap.salat.daily', compact(
             'date',
@@ -95,18 +98,17 @@ class PrayerSummaryController extends Controller
 
     public function weekly(Request $request)
 {
-    $week = $request->input('week', now()->format('Y-\WW'));
+    $week = $request->input('week', ReportingWeek::currentKey());
     $gender = $request->input('gender');
     $kelas = $request->input('kelas');
     $kamar = $request->input('kamar');
 
-    $start = \Carbon\Carbon::parse(str_replace('-W', 'W', $week))->startOfWeek();
-    $end = $start->copy()->endOfWeek();
+    [$start, $end] = ReportingWeek::fromKey($week);
 
     $prayers = Prayer::where('is_active', true)->orderBy('order')->get();
 
     $students = Student::query()
-        ->where('is_active', true)
+        ->obligatedForPrayer()
         ->when($gender, fn ($q) => $q->where('gender', $gender))
         ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
         ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
@@ -161,8 +163,10 @@ class PrayerSummaryController extends Controller
         'alpa' => $rows->sum('alpa'),
     ];
 
-    $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-    $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+    $kelasList = Student::query()->obligatedForPrayer()
+        ->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
+    $kamarList = Student::query()->obligatedForPrayer()
+        ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
     return view('rekap.salat.weekly', compact(
         'week',
@@ -198,7 +202,7 @@ public function monthly(Request $request)
         ->get();
 
     $students = Student::query()
-        ->where('is_active', true)
+        ->obligatedForPrayer()
         ->when($gender, fn ($q) => $q->where('gender', $gender))
         ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
         ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
@@ -253,8 +257,10 @@ public function monthly(Request $request)
         'alpa' => $rows->sum('alpa'),
     ];
 
-    $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-    $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+    $kelasList = Student::query()->obligatedForPrayer()
+        ->whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
+    $kamarList = Student::query()->obligatedForPrayer()
+        ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
     return view('rekap.salat.monthly', compact(
         'month',
@@ -282,9 +288,8 @@ public function monthly(Request $request)
         $start = \Carbon\Carbon::parse($request->input('date', now()->toDateString()));
         $end = $start->copy();
     } elseif ($period === 'weekly') {
-        $week = $request->input('week', now()->format('Y-\WW'));
-        $start = \Carbon\Carbon::parse(str_replace('-W', 'W', $week))->startOfWeek();
-        $end = $start->copy()->endOfWeek();
+        $week = $request->input('week', ReportingWeek::currentKey());
+        [$start, $end] = ReportingWeek::fromKey($week);
     } else {
         $month = (int) $request->input('month', now()->month);
         $year = (int) $request->input('year', now()->year);

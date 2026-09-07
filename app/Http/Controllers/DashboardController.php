@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\AttendanceSession;
+use App\Models\Institution;
 use App\Models\Prayer;
 use App\Models\Student;
 use App\Services\PrayerTimeService;
@@ -14,11 +15,41 @@ class DashboardController extends Controller
     public function index(Request $request, PrayerTimeService $prayerService)
     {
         $today = now()->toDateString();
+        $user = auth()->user();
+        $accessCodes = $user->accessibleInstitutionCodes();
+        $hasPonpesAccess = in_array('ponpes', $accessCodes, true);
+        $hasMadadAccess = in_array('madad', $accessCodes, true);
 
-        $prayers = Prayer::where('is_active', true)->orderBy('order')->get();
-        $activePrayer = $prayerService->getActivePrayer();
+        $prayers = $hasPonpesAccess
+            ? Prayer::where('is_active', true)->orderBy('order')->get()
+            : collect();
+        $activePrayer = $hasPonpesAccess ? $prayerService->getActivePrayer() : null;
+        $totalStudents = $hasPonpesAccess
+            ? Student::query()->obligatedForPrayer()->count()
+            : 0;
 
-        $totalStudents = Student::where('is_active', true)->count();
+        $academicYear = now()->month >= 7
+            ? now()->year.'/'.(now()->year + 1)
+            : (now()->year - 1).'/'.now()->year;
+
+        $institutionQuery = Institution::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order');
+
+        if (! $user->hasRole('admin')) {
+            $institutionQuery->whereHas('users', function ($query) {
+                $query->where('users.id', auth()->id())
+                    ->where('institution_user.is_active', true);
+            });
+        }
+
+        $institutions = $institutionQuery
+            ->withCount(['enrollments as active_students_count' => function ($query) use ($academicYear) {
+                $query->where('academic_year', $academicYear)
+                    ->where('is_active', true)
+                    ->whereHas('student', fn ($studentQuery) => $studentQuery->where('is_active', true));
+            }])
+            ->get();
 
         // Siapkan data ringkasan per sholat
         $items = $prayers->map(function ($p) use ($today, $totalStudents, $prayerService) {
@@ -27,13 +58,12 @@ class DashboardController extends Controller
                 ['status' => 'live']
             );
 
-            $hadir = Attendance::where('attendance_session_id', $session->id)
-                ->where('status', 'hadir')
-                ->count();
+            $attendanceQuery = Attendance::query()
+                ->where('attendance_session_id', $session->id)
+                ->whereHas('student', fn ($student) => $student->obligatedForPrayer());
 
-            $telat = Attendance::where('attendance_session_id', $session->id)
-                ->where('status', 'terlambat')
-                ->count();
+            $hadir = (clone $attendanceQuery)->where('status', 'hadir')->count();
+            $telat = (clone $attendanceQuery)->where('status', 'terlambat')->count();
 
             $sudah = $hadir + $telat;
             $belum = max(0, $totalStudents - $sudah);
@@ -54,7 +84,12 @@ class DashboardController extends Controller
             'prayers',
             'activePrayer',
             'totalStudents',
-            'items'
+            'institutions',
+            'academicYear',
+            'items',
+            'accessCodes',
+            'hasPonpesAccess',
+            'hasMadadAccess'
         ));
     }
 }

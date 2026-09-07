@@ -87,6 +87,7 @@
         <thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-400">
           <tr>
             <th class="px-6 py-4">User</th>
+            <th class="px-6 py-4">Akses Lembaga</th>
             <th class="px-6 py-4">Role</th>
             <th class="px-6 py-4">Status</th>
             <th class="px-6 py-4">Login Terakhir</th>
@@ -121,6 +122,20 @@
                       </div>
                     @endif
                   </div>
+                </div>
+              </td>
+
+              <td class="px-6 py-4">
+                <div class="flex max-w-xs flex-wrap gap-1.5">
+                  @if($u->hasRole('admin'))
+                    <x-ui.badge tone="emerald">Semua lembaga</x-ui.badge>
+                  @else
+                  @forelse($u->institutions as $institution)
+                    <x-ui.badge tone="slate">{{ $institution->short_name }}</x-ui.badge>
+                  @empty
+                    <x-ui.badge tone="red">Belum diatur</x-ui.badge>
+                  @endforelse
+                  @endif
                 </div>
               </td>
 
@@ -170,7 +185,7 @@
             </tr>
           @empty
             <tr>
-              <td colspan="5" class="p-10">
+              <td colspan="6" class="p-10">
                 <x-ui.empty-state
                   title="Belum ada user"
                   subtitle="Tambahkan akun petugas baru."
@@ -231,6 +246,16 @@
 
             @if($u->phone)
               <x-ui.badge tone="slate">{{ $u->phone }}</x-ui.badge>
+            @endif
+
+            @if($u->hasRole('admin'))
+              <x-ui.badge tone="emerald">Semua lembaga</x-ui.badge>
+            @else
+            @forelse($u->institutions as $institution)
+              <x-ui.badge tone="slate">{{ $institution->short_name }}</x-ui.badge>
+            @empty
+              <x-ui.badge tone="red">Belum diatur</x-ui.badge>
+            @endforelse
             @endif
           </div>
 

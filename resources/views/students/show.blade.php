@@ -5,6 +5,13 @@
 
 @section('content')
 
+@php
+  $displayEnrollment = $student->enrollments->first();
+  $displayClass = $canViewBoardingData
+    ? ($student->kelas ?: '-')
+    : (($displayEnrollment?->level ? $displayEnrollment->level.' / ' : '').($displayEnrollment?->class_name ?: '-'));
+@endphp
+
 <x-ui.page-header
   title="{{ $student->name }}"
   subtitle="NIS: {{ $student->nis }} • Detail identitas & QR santri"
@@ -14,6 +21,11 @@
     <x-ui.button :href="route('students.edit', $student)" variant="secondary">
       <i class="bi bi-pencil"></i>
       Edit
+    </x-ui.button>
+
+    <x-ui.button :href="route('students.institutions.edit', $student)" variant="secondary">
+      <i class="bi bi-building"></i>
+      Lembaga & Kelas
     </x-ui.button>
 
     <x-ui.button :href="route('students.index')" variant="secondary">
@@ -50,6 +62,11 @@
           @else
             <x-ui.badge tone="red">Nonaktif</x-ui.badge>
           @endif
+          @if($canViewBoardingData)
+            <x-ui.badge tone="blue">
+              {{ $student->residency_status === 'non_mukim' ? 'Tidak Mukim' : 'Mukim' }}
+            </x-ui.badge>
+          @endif
         </div>
       </div>
         <div class="rounded-2xl bg-purple-50 p-4">
@@ -66,7 +83,7 @@
             Kelas
           </div>
           <div class="mt-1 font-black text-blue-700">
-            {{ $student->kelas ?: '-' }}
+            {{ $displayClass }}
           </div>
         </div>
 
@@ -75,18 +92,28 @@
             Kamar
           </div>
           <div class="mt-1 font-black text-emerald-700">
-            {{ $student->kamar ?: '-' }}
+            {{ $canViewBoardingData ? ($student->kamar ?: '-') : '-' }}
           </div>
         </div>
       </div>
 
       <div class="mt-6 space-y-3">
         <x-ui.button
-          :href="route('students.attendance.show', $student)"
+          :href="route('students.institutions.edit', $student)"
+          variant="secondary"
           class="w-full justify-center">
-          <i class="bi bi-calendar-check"></i>
-          Riwayat Absensi
+          <i class="bi bi-building"></i>
+          Atur Lembaga & Kelas
         </x-ui.button>
+
+        @if($canViewBoardingData)
+          <x-ui.button
+            :href="route('students.attendance.show', $student)"
+            class="w-full justify-center">
+            <i class="bi bi-calendar-check"></i>
+            Riwayat Absensi
+          </x-ui.button>
+        @endif
 
         <x-ui.button
           :href="route('students.edit', $student)"
@@ -175,7 +202,7 @@
               Kelas
             </div>
             <div class="mt-1 text-sm font-black">
-              {{ $student->kelas ?: '-' }}
+              {{ $displayClass }}
             </div>
           </div>
 
@@ -184,7 +211,7 @@
               Kamar
             </div>
             <div class="mt-1 text-sm font-black">
-              {{ $student->kamar ?: '-' }}
+              {{ $canViewBoardingData ? ($student->kamar ?: '-') : '-' }}
             </div>
           </div>
         </div>
@@ -222,12 +249,14 @@
     </div>
 
     <div class="mt-5 grid grid-cols-2 gap-3">
-    <a
-      href="{{ route('students.id-card.png', $student) }}"
-      class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-lime-500 px-4 py-2 text-sm font-black text-white shadow-lg shadow-emerald-300/40 transition active:scale-95">
-      <i class="bi bi-download"></i>
-      Download ID Card
-    </a>
+    @if($canViewBoardingData)
+      <a
+        href="{{ route('students.id-card.png', $student) }}"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-lime-500 px-4 py-2 text-sm font-black text-white shadow-lg shadow-emerald-300/40 transition active:scale-95">
+        <i class="bi bi-download"></i>
+        Download ID Card
+      </a>
+    @endif
     <a
       href="{{ route('students.qr.download', $student) }}"
       class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-lg shadow-slate-300/40 transition active:scale-95">
@@ -272,12 +301,14 @@
               Nomor WA ortu belum diisi.
             </div>
           @endif
-      <x-ui.button
-        :href="route('students.attendance.show', $student)"
-        variant="secondary"
-        class="justify-center">
-        Absensi
-      </x-ui.button>
+      @if($canViewBoardingData)
+        <x-ui.button
+          :href="route('students.attendance.show', $student)"
+          variant="secondary"
+          class="justify-center">
+          Absensi
+        </x-ui.button>
+      @endif
     </div>
 
   </x-ui.card>
@@ -297,6 +328,31 @@
       </div>
 
       <div class="space-y-4">
+
+        <div class="rounded-2xl bg-blue-50 p-4">
+          <div class="text-xs font-black uppercase tracking-wide text-blue-400">
+            Keanggotaan Lembaga • {{ $academicYear }}
+          </div>
+          <div class="mt-3 space-y-2">
+            @forelse($student->enrollments as $enrollment)
+              <div class="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                <span class="text-sm font-black text-slate-700">
+                  {{ $enrollment->institution->short_name }}
+                </span>
+                <span class="text-xs font-bold text-blue-600">
+                  {{ $enrollment->class_name ?: 'Tanpa kelas' }}
+                  @if($enrollment->level)
+                    • {{ $enrollment->level }}
+                  @endif
+                </span>
+              </div>
+            @empty
+              <div class="text-sm font-semibold text-amber-700">
+                Belum terdaftar pada lembaga aktif.
+              </div>
+            @endforelse
+          </div>
+        </div>
 
         <div class="rounded-2xl bg-slate-50 p-4">
           <div class="text-xs font-black uppercase tracking-wide text-slate-400">

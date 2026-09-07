@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Attendance;
 use App\Models\AttendanceSession;
+use App\Models\Prayer;
 use App\Models\Student;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
@@ -39,10 +40,13 @@ class RekapAbsensiExport implements FromArray, WithHeadings
             ['date' => $this->date, 'prayer_id' => $this->prayerId],
             ['status' => 'live']
         );
+        $prayer = Prayer::findOrFail($this->prayerId);
+        $obligationAt = Carbon::parse($this->date.' '.$prayer->start_time);
 
         $attQuery = Attendance::query()
             ->with('student')
             ->where('attendance_session_id', $session->id)
+            ->whereHas('student', fn ($student) => $student->obligatedForPrayer($obligationAt))
             ->when($this->kelas, fn($q) => $q->whereHas('student', fn($s) => $s->where('kelas', $this->kelas)))
             ->when($this->kamar, fn($q) => $q->whereHas('student', fn($s) => $s->where('kamar', $this->kamar)))
             ->orderBy('scanned_at');
@@ -63,11 +67,12 @@ class RekapAbsensiExport implements FromArray, WithHeadings
         }
 
         // OPTIONAL: tambahkan santri yang belum absen di bawah
-        $studentsQuery = Student::query()->where('is_active', true)
+        $studentsQuery = Student::query()->obligatedForPrayer($obligationAt)
             ->when($this->kelas, fn($q) => $q->where('kelas', $this->kelas))
             ->when($this->kamar, fn($q) => $q->where('kamar', $this->kamar));
 
         $presentIds = Attendance::where('attendance_session_id', $session->id)
+            ->whereHas('student', fn ($student) => $student->obligatedForPrayer($obligationAt))
             ->when($this->kelas || $this->kamar, function ($q) {
                 $q->whereHas('student');
             })

@@ -7,6 +7,9 @@ use App\Models\Activity;
 use App\Models\ActivityAttendance;
 use App\Models\ActivitySession;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
+use App\Support\ReportingWeek;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
@@ -27,6 +30,7 @@ class ActivitySummaryController extends Controller
     {
         $date = $request->input('date', now()->toDateString());
         $gender = $request->input('gender');
+        $level = StudentEnrollment::normalizeMadadLevel($request->input('level'));
         $kelas = $request->input('kelas');
         $kamar = $request->input('kamar');
 
@@ -38,11 +42,12 @@ class ActivitySummaryController extends Controller
             ->orderBy('order')
             ->get();
 
-        $students = Student::query()
-            ->where('is_active', true)
+        $academicYear = Student::academicYearForDate($date);
+        $studentsQuery = Student::query()
+            ->obligatedForActivity($category, $academicYear)
             ->when($gender, fn ($q) => $q->where('gender', $gender))
-            ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
-            ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
+            ->when($kamar, fn ($q) => $q->where('kamar', $kamar));
+        $students = $this->applyClassFilter($studentsQuery, $category, $academicYear, $level, $kelas)
             ->orderBy('name')
             ->get();
 
@@ -91,8 +96,11 @@ class ActivitySummaryController extends Controller
             'alpa' => $rows->sum('alpa'),
         ];
 
-        $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-        $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+        $kelasList = $this->classOptions($category, $academicYear);
+        $levelList = $category === 'diniyah' ? StudentEnrollment::madadLevels() : [];
+        $kamarList = Student::query()
+            ->obligatedForActivity($category, Student::academicYearForDate($date))
+            ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
         $view = $category === 'diniyah'
             ? 'rekap.diniyah.daily'
@@ -101,12 +109,14 @@ class ActivitySummaryController extends Controller
         return view($view, compact(
             'date',
             'gender',
+            'level',
             'kelas',
             'kamar',
             'activities',
             'rows',
             'summary',
             'kelasList',
+            'levelList',
             'kamarList',
             'category'
         ));
@@ -120,24 +130,25 @@ public function weekly(Request $request)
 
 private function summaryWeekly(Request $request, string $category)
 {
-    $week = $request->input('week', now()->format('Y-\WW'));
+    $week = $request->input('week', ReportingWeek::currentKey());
     $gender = $request->input('gender');
+    $level = StudentEnrollment::normalizeMadadLevel($request->input('level'));
     $kelas = $request->input('kelas');
     $kamar = $request->input('kamar');
 
-    $start = \Carbon\Carbon::parse(str_replace('-W', 'W', $week))->startOfWeek();
-    $end = $start->copy()->endOfWeek();
+    [$start, $end] = ReportingWeek::fromKey($week);
 
     $activities = Activity::where('category', $category)
         ->where('is_active', true)
         ->orderBy('order')
         ->get();
 
-    $students = Student::query()
-        ->where('is_active', true)
+    $academicYear = Student::academicYearForDate($start);
+    $studentsQuery = Student::query()
+        ->obligatedForActivity($category, $academicYear)
         ->when($gender, fn ($q) => $q->where('gender', $gender))
-        ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
-        ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
+        ->when($kamar, fn ($q) => $q->where('kamar', $kamar));
+    $students = $this->applyClassFilter($studentsQuery, $category, $academicYear, $level, $kelas)
         ->orderBy('name')
         ->get();
 
@@ -189,20 +200,29 @@ private function summaryWeekly(Request $request, string $category)
         'alpa' => $rows->sum('alpa'),
     ];
 
-    $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-    $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+    $kelasList = $this->classOptions($category, $academicYear);
+    $levelList = $category === 'diniyah' ? StudentEnrollment::madadLevels() : [];
+    $kamarList = Student::query()
+        ->obligatedForActivity($category, Student::academicYearForDate($start))
+        ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
-    return view('rekap.kegiatan.weekly', compact(
+    $view = $category === 'diniyah'
+        ? 'rekap.diniyah.weekly'
+        : 'rekap.kegiatan.weekly';
+
+    return view($view, compact(
         'week',
         'start',
         'end',
         'gender',
+        'level',
         'kelas',
         'kamar',
         'activities',
         'rows',
         'summary',
         'kelasList',
+        'levelList',
         'kamarList',
         'category'
     ));
@@ -219,6 +239,7 @@ private function summaryMonthly(Request $request, string $category)
     $year = (int) $request->input('year', now()->year);
 
     $gender = $request->input('gender');
+    $level = StudentEnrollment::normalizeMadadLevel($request->input('level'));
     $kelas = $request->input('kelas');
     $kamar = $request->input('kamar');
 
@@ -230,11 +251,12 @@ private function summaryMonthly(Request $request, string $category)
         ->orderBy('order')
         ->get();
 
-    $students = Student::query()
-        ->where('is_active', true)
+    $academicYear = Student::academicYearForDate($start);
+    $studentsQuery = Student::query()
+        ->obligatedForActivity($category, $academicYear)
         ->when($gender, fn ($q) => $q->where('gender', $gender))
-        ->when($kelas, fn ($q) => $q->where('kelas', $kelas))
-        ->when($kamar, fn ($q) => $q->where('kamar', $kamar))
+        ->when($kamar, fn ($q) => $q->where('kamar', $kamar));
+    $students = $this->applyClassFilter($studentsQuery, $category, $academicYear, $level, $kelas)
         ->orderBy('name')
         ->get();
 
@@ -287,21 +309,30 @@ private function summaryMonthly(Request $request, string $category)
         'alpa' => $rows->sum('alpa'),
     ];
 
-    $kelasList = Student::whereNotNull('kelas')->distinct()->orderBy('kelas')->pluck('kelas');
-    $kamarList = Student::whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
+    $kelasList = $this->classOptions($category, $academicYear);
+    $levelList = $category === 'diniyah' ? StudentEnrollment::madadLevels() : [];
+    $kamarList = Student::query()
+        ->obligatedForActivity($category, Student::academicYearForDate($start))
+        ->whereNotNull('kamar')->distinct()->orderBy('kamar')->pluck('kamar');
 
-    return view('rekap.kegiatan.monthly', compact(
+    $view = $category === 'diniyah'
+        ? 'rekap.diniyah.monthly'
+        : 'rekap.kegiatan.monthly';
+
+    return view($view, compact(
         'month',
         'year',
         'start',
         'end',
         'gender',
+        'level',
         'kelas',
         'kamar',
         'activities',
         'rows',
         'summary',
         'kelasList',
+        'levelList',
         'kamarList',
         'category'
     ));
@@ -320,6 +351,7 @@ public function diniyahMonthly(Request $request)
 public function exportExcel(Request $request, string $category, string $period)
 {
     $gender = $request->input('gender');
+    $level = StudentEnrollment::normalizeMadadLevel($request->input('level'));
     $kelas = $request->input('kelas');
     $kamar = $request->input('kamar');
 
@@ -327,9 +359,8 @@ public function exportExcel(Request $request, string $category, string $period)
         $start = \Carbon\Carbon::parse($request->input('date', now()->toDateString()));
         $end = $start->copy();
     } elseif ($period === 'weekly') {
-        $week = $request->input('week', now()->format('Y-\WW'));
-        $start = \Carbon\Carbon::parse(str_replace('-W', 'W', $week))->startOfWeek();
-        $end = $start->copy()->endOfWeek();
+        $week = $request->input('week', ReportingWeek::currentKey());
+        [$start, $end] = ReportingWeek::fromKey($week);
     } else {
         $month = (int) $request->input('month', now()->month);
         $year = (int) $request->input('year', now()->year);
@@ -347,10 +378,59 @@ public function exportExcel(Request $request, string $category, string $period)
             $start->toDateString(),
             $end->toDateString(),
             $gender,
+            $level,
             $kelas,
             $kamar
         ),
         'Rekap-'.$label.'-'.$period.'-'.$start->format('Y-m-d').'.xlsx'
     );
+}
+
+private function applyClassFilter(
+    Builder $query,
+    string $category,
+    string $academicYear,
+    ?string $level,
+    ?string $kelas
+): Builder {
+    if ($category === 'diniyah') {
+        $query->withInstitutionClass('madad', $academicYear);
+
+        if ($level) {
+            $query->whereInstitutionLevel('madad', $academicYear, $level);
+        }
+
+        if ($kelas) {
+            $query->whereInstitutionClass('madad', $academicYear, $kelas);
+        }
+
+        return $query;
+    }
+
+    return $query->when($kelas, fn (Builder $student) => $student->where('kelas', $kelas));
+}
+
+private function classOptions(string $category, string $academicYear)
+{
+    if ($category === 'diniyah') {
+        return StudentEnrollment::query()
+            ->where('academic_year', $academicYear)
+            ->where('is_active', true)
+            ->whereNotNull('class_name')
+            ->where('class_name', '!=', '')
+            ->whereHas('institution', fn (Builder $institution) => $institution
+                ->where('code', 'madad')
+                ->where('is_active', true))
+            ->distinct()
+            ->orderBy('class_name')
+            ->pluck('class_name');
+    }
+
+    return Student::query()
+        ->obligatedForActivity('umum', $academicYear)
+        ->whereNotNull('kelas')
+        ->distinct()
+        ->orderBy('kelas')
+        ->pluck('kelas');
 }
 }

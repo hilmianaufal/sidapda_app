@@ -51,19 +51,21 @@
               placeholder="Nomor induk santri" />
           </x-ui.form-group>
 
-          <x-ui.form-group label="Jenjang">
-            <x-ui.input
-              name="kelas"
-              :value="old('kelas')"
-              placeholder="Contoh: SMP" />
-          </x-ui.form-group>
+          @if(auth()->user()->hasRole('admin') || auth()->user()->canAccessInstitution('ponpes'))
+            <x-ui.form-group label="Jenjang Pondok">
+              <x-ui.input
+                name="kelas"
+                :value="old('kelas')"
+                placeholder="Contoh: SMP" />
+            </x-ui.form-group>
 
-          <x-ui.form-group label="Kamar">
-            <x-ui.input
-              name="kamar"
-              :value="old('kamar')"
-              placeholder="Contoh: Al Mukaromah" />
-          </x-ui.form-group>
+            <x-ui.form-group label="Kamar">
+              <x-ui.input
+                name="kamar"
+                :value="old('kamar')"
+                placeholder="Contoh: Al Mukaromah" />
+            </x-ui.form-group>
+          @endif
 
             <x-ui.form-group label="Jenis Santri">
             <x-ui.select name="gender">
@@ -78,6 +80,21 @@
                 </option>
             </x-ui.select>
             </x-ui.form-group>
+
+            @if(auth()->user()->hasRole('admin') || auth()->user()->canAccessInstitution('ponpes'))
+              <x-ui.form-group label="Status Tempat Tinggal">
+                <x-ui.select name="residency_status">
+                  <option value="mukim" @selected(old('residency_status', 'mukim') === 'mukim')>
+                    Mukim di Pondok
+                  </option>
+                  <option value="non_mukim" @selected(old('residency_status') === 'non_mukim')>
+                    Tidak Mukim
+                  </option>
+                </x-ui.select>
+              </x-ui.form-group>
+            @else
+              <input type="hidden" name="residency_status" value="non_mukim">
+            @endif
 
           <x-ui.form-group label="Nomor WhatsApp Ortu">
               <x-ui.input
@@ -97,6 +114,53 @@
 
         </div>
 
+      </x-ui.card>
+
+      <x-ui.card>
+        <div class="mb-5">
+          <div class="text-lg font-black text-slate-900">Lembaga Awal</div>
+          <div class="mt-1 text-sm font-medium text-slate-500">
+            Data baru langsung ditempatkan pada lembaga yang dipilih.
+          </div>
+        </div>
+
+        <div class="grid gap-5 md:grid-cols-2">
+          <x-ui.form-group label="Lembaga" :required="!auth()->user()->hasRole('admin')">
+            <x-ui.select name="institution_id" id="studentInstitutionSelect">
+              @if(auth()->user()->hasRole('admin'))
+                <option value="">Belum ditentukan</option>
+              @endif
+              @foreach($institutions as $institution)
+                <option
+                  value="{{ $institution->id }}"
+                  data-code="{{ $institution->code }}"
+                  @selected((int) old('institution_id', $selectedInstitutionId) === (int) $institution->id)>
+                  {{ $institution->short_name }} — {{ $institution->name }}
+                </option>
+              @endforeach
+            </x-ui.select>
+          </x-ui.form-group>
+
+          <x-ui.form-group label="Kelas Lembaga">
+            <x-ui.input
+              name="institution_class"
+              :value="old('institution_class')"
+              placeholder="Contoh: 1 / 7A / 10 IPA" />
+          </x-ui.form-group>
+
+          <div id="madadLevelField" class="hidden md:col-span-2">
+            <x-ui.form-group label="Jenjang MADAD">
+              <x-ui.select name="institution_level">
+                <option value="">Pilih jenjang MADAD</option>
+                @foreach(\App\Models\StudentEnrollment::madadLevels() as $madadLevel)
+                  <option value="{{ $madadLevel }}" @selected(old('institution_level') === $madadLevel)>
+                    {{ $madadLevel }}
+                  </option>
+                @endforeach
+              </x-ui.select>
+            </x-ui.form-group>
+          </div>
+        </div>
       </x-ui.card>
 
     </div>
@@ -191,5 +255,16 @@
 
     preview.src = URL.createObjectURL(file);
   });
+
+  const institutionSelect = document.getElementById('studentInstitutionSelect');
+  const madadLevelField = document.getElementById('madadLevelField');
+
+  function toggleMadadLevel() {
+    const selectedOption = institutionSelect?.options[institutionSelect.selectedIndex];
+    madadLevelField?.classList.toggle('hidden', selectedOption?.dataset.code !== 'madad');
+  }
+
+  institutionSelect?.addEventListener('change', toggleMadadLevel);
+  toggleMadadLevel();
 </script>
 @endpush

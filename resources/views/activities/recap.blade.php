@@ -1,25 +1,33 @@
+@php
+  $isMadad = $category === 'diniyah';
+  $pageTitle = $isMadad ? 'Izin Kegiatan MADAD' : 'Izin Kegiatan Pondok';
+  $returnRoute = $isMadad ? 'activities.excuses.madad' : 'activities.excuses.pondok';
+@endphp
+
 @extends('layouts.app')
 
-@section('title','Rekap Kegiatan')
-@section('mobile_title','Rekap Kegiatan')
+@section('title', $pageTitle)
+@section('mobile_title', $pageTitle)
 
 @section('content')
 
 <x-ui.page-header
-  title="Rekap Kegiatan"
-  subtitle="Monitoring absensi kegiatan santri"
+  :title="$pageTitle"
+  :subtitle="$isMadad ? 'Catat izin, sakit, dan pulang untuk kegiatan MADAD' : 'Catat izin, sakit, dan pulang untuk kegiatan Pondok'"
   icon="bi-clipboard-check"
 >
   <x-slot:actions>
-    <x-ui.button :href="route('activities.scan')" variant="secondary">
+    <x-ui.button :href="route('activities.scan', ['category' => $category])" variant="secondary">
       <i class="bi bi-qr-code"></i>
       Scan
     </x-ui.button>
 
-    <x-ui.button :href="route('activities.recap.export.excel', request()->query())" variant="secondary">
-      <i class="bi bi-file-earmark-excel"></i>
-      Excel
-    </x-ui.button>
+    @if($selectedActivity)
+      <x-ui.button :href="route('activities.recap.export.excel', array_filter(array_merge(request()->query(), ['activity_id' => $selectedActivity->id, 'category' => $category])))" variant="secondary">
+        <i class="bi bi-file-earmark-excel"></i>
+        Excel
+      </x-ui.button>
+    @endif
   </x-slot:actions>
 </x-ui.page-header>
 
@@ -37,9 +45,15 @@
   </div>
 @endif
 
+<div class="mb-6 rounded-[1.5rem] border border-blue-200 bg-blue-50 px-5 py-4 text-sm font-semibold text-blue-700">
+  <div class="font-black"><i class="bi bi-info-circle"></i> Cara mencatat izin</div>
+  <div class="mt-1">Pilih tanggal dan kegiatan, cari siswa pada bagian <b>Alpa / Belum Absen</b>, lalu tekan Izin, Sakit, atau Pulang.</div>
+</div>
+
 <x-ui.card class="mb-6">
   <form method="GET">
-    <div class="grid gap-4 lg:grid-cols-5">
+    <input type="hidden" name="category" value="{{ $category }}">
+    <div class="grid gap-4 {{ $isMadad ? 'lg:grid-cols-6' : 'lg:grid-cols-5' }}">
 
       <div>
         <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
@@ -47,6 +61,20 @@
         </label>
         <x-ui.input type="date" name="date" value="{{ $date }}" />
       </div>
+
+      @if($isMadad)
+        <div>
+          <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+            Jenjang MADAD
+          </label>
+          <x-ui.select name="level">
+            <option value="">Semua</option>
+            @foreach($levelList as $madadLevel)
+              <option value="{{ $madadLevel }}" @selected($level === $madadLevel)>{{ $madadLevel }}</option>
+            @endforeach
+          </x-ui.select>
+        </div>
+      @endif
 
       <div>
         <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
@@ -63,7 +91,7 @@
 
       <div>
         <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
-          Jenjang
+          {{ $isMadad ? 'Kelas MADAD' : 'Jenjang' }}
         </label>
         <x-ui.select name="kelas">
           <option value="">Semua</option>
@@ -95,7 +123,7 @@
           Filter
         </x-ui.button>
 
-        <x-ui.button :href="route('activities.recap')" variant="secondary">
+        <x-ui.button :href="route($returnRoute)" variant="secondary">
           Reset
         </x-ui.button>
       </div>
@@ -162,7 +190,7 @@
               <th class="px-6 py-4">Santri</th>
               <th class="px-6 py-4">Status</th>
               <th class="px-6 py-4">Jam</th>
-              <th class="px-6 py-4">Jenjang/Kamar</th>
+              <th class="px-6 py-4">{{ $isMadad ? 'Jenjang/Kelas MADAD' : 'Jenjang' }}/Kamar</th>
               <th class="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
@@ -212,7 +240,7 @@
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-2">
                     <x-ui.badge tone="blue">
-                      {{ $attendance->student->kelas ?? '-' }}
+                      {{ $isMadad ? (($attendance->student->institution_level ?: 'Belum ada jenjang').' / Kelas '.($attendance->student->institution_class ?: '-')) : ($attendance->student->kelas ?? '-') }}
                     </x-ui.badge>
 
                     <x-ui.badge tone="emerald">
@@ -282,7 +310,7 @@
         @forelse($absentStudents as $student)
             <div
             class="activity-absent-student-item border-b border-slate-100 p-4"
-            data-search="{{ strtolower($student->name.' '.$student->nis.' '.$student->kelas.' '.$student->kamar) }}">
+            data-search="{{ strtolower($student->name.' '.$student->nis.' '.($isMadad ? $student->institution_level.' '.$student->institution_class : $student->kelas).' '.$student->kamar) }}">
             <div class="flex items-start gap-4">
               <img
                 src="{{ $student->photoUrl() }}"
@@ -300,7 +328,7 @@
 
                 <div class="mt-2 flex flex-wrap gap-2">
                   <x-ui.badge tone="blue">
-                    {{ $student->kelas ?? '-' }}
+                    {{ $isMadad ? (($student->institution_level ?: 'Belum ada jenjang').' / Kelas '.($student->institution_class ?: '-')) : ($student->kelas ?? '-') }}
                   </x-ui.badge>
 
                   <x-ui.badge tone="emerald">

@@ -1,30 +1,46 @@
 @extends('layouts.app')
 
-@section('title','Scan Kegiatan')
-@section('mobile_title','Scan Kegiatan')
+@php
+  $isMadad = ($category ?? null) === 'diniyah';
+  $pageTitle = $isMadad ? 'Scan Absensi MADAD' : 'Scan Kegiatan';
+@endphp
+
+@section('title', $pageTitle)
+@section('mobile_title', $isMadad ? 'Scan MADAD' : 'Scan Kegiatan')
 
 @section('content')
 
 <x-ui.page-header
-  title="Scan Kegiatan Santri"
-  subtitle="Absensi kegiatan berbasis QR code"
-  icon="bi-qr-code"
+  :title="$isMadad ? 'Scan Absensi MADAD' : 'Scan Kegiatan Santri'"
+  :subtitle="$isMadad ? 'Absensi khusus kegiatan Diniyah untuk siswa aktif MADAD' : 'Absensi kegiatan berbasis QR code'"
+  :icon="$isMadad ? 'bi-book' : 'bi-qr-code'"
 >
   <x-slot:actions>
-    <x-ui.button :href="route('activities.index')" variant="secondary">
+    <x-ui.button :href="route('activities.index', array_filter(['category' => $category ?? null]))" variant="secondary">
       <i class="bi bi-calendar-check"></i>
-      Jadwal Kegiatan
+      {{ $isMadad ? 'Jadwal MADAD' : 'Jadwal Kegiatan' }}
     </x-ui.button>
 
-    <x-ui.button :href="route('rekap-kegiatan.daily')" variant="secondary">
-      <i class="bi bi-clipboard-check"></i>
-      Rekap Kegiatan
-    </x-ui.button>
+    @if($isMadad)
+      <x-ui.button :href="route('rekap-diniyah.daily')" variant="secondary">
+        <i class="bi bi-clipboard-check"></i>
+        Rekap MADAD
+      </x-ui.button>
+      <x-ui.button :href="route('dashboard.institution', 'madad')" variant="secondary">
+        <i class="bi bi-speedometer2"></i>
+        Dashboard MADAD
+      </x-ui.button>
+    @else
+      <x-ui.button :href="route('rekap-kegiatan.daily')" variant="secondary">
+        <i class="bi bi-clipboard-check"></i>
+        Rekap Kegiatan
+      </x-ui.button>
 
-    <x-ui.button :href="route('rekap-diniyah.daily')" variant="secondary">
-      <i class="bi bi-book"></i>
-      Rekap Diniyah
-    </x-ui.button>
+      <x-ui.button :href="route('rekap-diniyah.daily')" variant="secondary">
+        <i class="bi bi-book"></i>
+        Rekap Diniyah
+      </x-ui.button>
+    @endif
   </x-slot:actions>
 </x-ui.page-header>
 
@@ -66,7 +82,7 @@
       <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="text-lg font-black text-slate-900">
-            Scanner Kegiatan
+            {{ $isMadad ? 'Scanner MADAD' : 'Scanner Kegiatan' }}
           </div>
 
           <div class="text-sm font-medium text-slate-500">
@@ -225,6 +241,7 @@ window.__HAS_ACTIVE_ACTIVITY__ = @json((bool) $activeActivity);
 document.addEventListener('DOMContentLoaded', () => {
   const csrf = @json(csrf_token());
   const scanUrl = @json(route('activities.scan.store'));
+  const scanCategory = @json($category ?? null);
   const hasActiveActivity = window.__HAS_ACTIVE_ACTIVITY__;
 
   const alertBox  = document.getElementById('alertBox');
@@ -334,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'X-CSRF-TOKEN': csrf,
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ token, category: scanCategory })
       });
 
       const json = await res.json();

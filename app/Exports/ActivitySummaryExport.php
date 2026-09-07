@@ -18,6 +18,7 @@ class ActivitySummaryExport implements FromArray, WithHeadings
         public string $startDate,
         public string $endDate,
         public ?string $gender = null,
+        public ?string $level = null,
         public ?string $kelas = null,
         public ?string $kamar = null,
     ) {}
@@ -30,7 +31,7 @@ class ActivitySummaryExport implements FromArray, WithHeadings
             'NIS',
             'Nama',
             'Jenis Santri',
-            'Jenjang',
+            $this->category === 'diniyah' ? 'Jenjang/Kelas MADAD' : 'Jenjang',
             'Kamar',
             'Hadir',
             'Telat',
@@ -45,19 +46,35 @@ class ActivitySummaryExport implements FromArray, WithHeadings
     public function array(): array
     {
         $start = Carbon::parse($this->startDate)->startOfDay();
-        $end = Carbon::parse($this->endDate)->endOfDay();
+        $endDate = Carbon::parse($this->endDate)->startOfDay();
+        $end = $endDate->copy()->endOfDay();
 
         $activities = Activity::where('category', $this->category)
             ->where('is_active', true)
             ->orderBy('order')
             ->get();
 
-        $students = Student::where('is_active', true)
+        $academicYear = Student::academicYearForDate($start);
+        $studentsQuery = Student::query()
+            ->obligatedForActivity($this->category, $academicYear)
             ->when($this->gender, fn ($q) => $q->where('gender', $this->gender))
-            ->when($this->kelas, fn ($q) => $q->where('kelas', $this->kelas))
-            ->when($this->kamar, fn ($q) => $q->where('kamar', $this->kamar))
-            ->orderBy('name')
-            ->get();
+            ->when($this->kamar, fn ($q) => $q->where('kamar', $this->kamar));
+
+        if ($this->category === 'diniyah') {
+            $studentsQuery->withInstitutionClass('madad', $academicYear);
+
+            if ($this->level) {
+                $studentsQuery->whereInstitutionLevel('madad', $academicYear, $this->level);
+            }
+
+            if ($this->kelas) {
+                $studentsQuery->whereInstitutionClass('madad', $academicYear, $this->kelas);
+            }
+        } elseif ($this->kelas) {
+            $studentsQuery->where('kelas', $this->kelas);
+        }
+
+        $students = $studentsQuery->orderBy('name')->get();
 
         $sessionIds = ActivitySession::whereIn('activity_id', $activities->pluck('id'))
             ->whereBetween('started_at', [$start, $end])
@@ -65,8 +82,8 @@ class ActivitySummaryExport implements FromArray, WithHeadings
 
         $attendances = ActivityAttendance::whereIn('activity_session_id', $sessionIds)->get();
 
-        $days = $start->diffInDays($end) + 1;
-        $target = $activities->count() * $days;
+        $days = (int) $start->diffInDays($endDate) + 1;
+        $target = (int) $activities->count() * $days;
 
         $rows = [];
 
@@ -88,7 +105,9 @@ class ActivitySummaryExport implements FromArray, WithHeadings
                 $student->nis,
                 $student->name,
                 $student->gender === 'putra' ? 'Putra' : ($student->gender === 'putri' ? 'Putri' : '-'),
-                $student->kelas ?? '-',
+                $this->category === 'diniyah'
+                    ? (($student->institution_level ?: 'Belum ada jenjang').' / Kelas '.($student->institution_class ?: '-'))
+                    : ($student->kelas ?? '-'),
                 $student->kamar ?? '-',
                 $hadir,
                 $telat,

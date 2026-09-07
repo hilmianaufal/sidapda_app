@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class UserManagementController extends Controller
@@ -19,6 +21,13 @@ class UserManagementController extends Controller
         $roles = Role::orderBy('name')->pluck('name');
 
         $users = User::query()
+            ->with([
+                'roles',
+                'institutions' => fn ($query) => $query
+                    ->where('institutions.is_active', true)
+                    ->wherePivot('is_active', true)
+                    ->orderBy('institutions.sort_order'),
+            ])
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($qq) use ($q) {
                     $qq->where('name', 'like', "%{$q}%")
@@ -48,7 +57,9 @@ class UserManagementController extends Controller
     public function create()
     {
         $roles = Role::orderBy('name')->pluck('name');
-        return view('users.create', compact('roles'));
+        $institutions = Institution::where('is_active', true)->orderBy('sort_order')->get();
+
+        return view('users.create', compact('roles', 'institutions'));
     }
 
     public function store(Request $request)
@@ -58,7 +69,12 @@ class UserManagementController extends Controller
             'email'     => ['required', 'email', 'max:120', 'unique:users,email'],
             'phone'     => ['nullable', 'string', 'max:30'],
             'password'  => ['required', 'string', 'min:6'],
-            'role'      => ['required', 'string'],
+            'role'      => ['required', 'string', Rule::exists('roles', 'name')],
+            'institution_ids' => [Rule::requiredIf(fn () => $request->input('role') !== 'admin'), 'array'],
+            'institution_ids.*' => [
+                'integer',
+                Rule::exists('institutions', 'id')->where('is_active', true),
+            ],
             'is_active' => ['nullable'],
             'notes'     => ['nullable', 'string', 'max:500'],
             'avatar'    => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
@@ -81,6 +97,7 @@ class UserManagementController extends Controller
         ]);
 
         $user->syncRoles([$data['role']]);
+        $this->syncInstitutions($user, $data['institution_ids'] ?? []);
 
         return redirect()->route('users.index')->with('success', 'User berhasil dibuat.');
     }
@@ -89,8 +106,19 @@ class UserManagementController extends Controller
     {
         $roles = Role::orderBy('name')->pluck('name');
         $currentRole = $user->roles->pluck('name')->first();
+        $institutions = Institution::where('is_active', true)->orderBy('sort_order')->get();
+        $selectedInstitutionIds = $user->institutions()
+            ->wherePivot('is_active', true)
+            ->pluck('institutions.id')
+            ->all();
 
-        return view('users.edit', compact('user', 'roles', 'currentRole'));
+        return view('users.edit', compact(
+            'user',
+            'roles',
+            'currentRole',
+            'institutions',
+            'selectedInstitutionIds'
+        ));
     }
 
     public function update(Request $request, User $user)
@@ -99,7 +127,12 @@ class UserManagementController extends Controller
             'name'      => ['required', 'string', 'max:100'],
             'email'     => ['required', 'email', 'max:120', 'unique:users,email,' . $user->id],
             'phone'     => ['nullable', 'string', 'max:30'],
-            'role'      => ['required', 'string'],
+            'role'      => ['required', 'string', Rule::exists('roles', 'name')],
+            'institution_ids' => [Rule::requiredIf(fn () => $request->input('role') !== 'admin'), 'array'],
+            'institution_ids.*' => [
+                'integer',
+                Rule::exists('institutions', 'id')->where('is_active', true),
+            ],
             'password'  => ['nullable', 'string', 'min:6'],
             'is_active' => ['nullable'],
             'notes'     => ['nullable', 'string', 'max:500'],
@@ -132,6 +165,7 @@ class UserManagementController extends Controller
         }
 
         $user->syncRoles([$data['role']]);
+        $this->syncInstitutions($user, $data['institution_ids'] ?? []);
 
         return redirect()->route('users.index')->with('success', 'User berhasil diperbarui.');
     }
@@ -150,5 +184,15 @@ class UserManagementController extends Controller
         $user->delete();
 
         return back()->with('success', 'User berhasil dihapus.');
+    }
+
+    private function syncInstitutions(User $user, array $institutionIds): void
+    {
+        $syncData = collect($institutionIds)
+            ->unique()
+            ->mapWithKeys(fn ($id) => [(int) $id => ['is_active' => true]])
+            ->all();
+
+        $user->institutions()->sync($syncData);
     }
 }

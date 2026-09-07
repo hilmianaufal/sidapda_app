@@ -3,30 +3,36 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Models\Institution;
 use App\Models\ActivityAttendance;
 use App\Services\ActivityTimeService;
 use App\Services\ActivitySessionService;
+use App\Services\StudentWhatsappNotifier;
 use Illuminate\Http\Request;
 
 class ActivityScanController extends Controller
 {
-    public function index(ActivityTimeService $activityService)
+    public function index(Request $request, ActivityTimeService $activityService)
     {
-        $activeActivity = $activityService->getActiveActivity();
+        $category = $this->categoryFromRequest($request);
+        $activeActivity = $activityService->getActiveActivity($category);
 
-        return view('activities.scan', compact('activeActivity'));
+        return view('activities.scan', compact('activeActivity', 'category'));
     }
 
     public function store(
         Request $request,
         ActivityTimeService $activityService,
-        ActivitySessionService $sessionService
+        ActivitySessionService $sessionService,
+        StudentWhatsappNotifier $whatsapp
     ) {
         $data = $request->validate([
             'token' => ['required', 'string'],
+            'category' => ['nullable', 'in:umum,diniyah'],
         ]);
 
-        $activeActivity = $activityService->getActiveActivity();
+        $category = $data['category'] ?? null;
+        $activeActivity = $activityService->getActiveActivity($category);
 
         if (!$activeActivity) {
             return response()->json([
@@ -48,6 +54,21 @@ class ActivityScanController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Santri nonaktif. Hubungi admin.',
+            ], 422);
+        }
+
+        $academicYear = Student::academicYearForDate();
+
+        if (! $student->isObligatedForActivity($activeActivity->category, $academicYear)) {
+            $message = $student->isAwayFromBoarding()
+                ? 'Siswa sedang berstatus pulang. Scan kembali ke Pondok terlebih dahulu.'
+                : ($activeActivity->category === 'diniyah'
+                    ? 'Siswa belum terdaftar aktif di MADAD tahun ajaran '.$academicYear.'.'
+                    : 'Santri tidak mukim tidak memiliki kewajiban kegiatan Pondok.');
+
+            return response()->json([
+                'ok' => false,
+                'message' => $message,
             ], 422);
         }
 
@@ -92,6 +113,20 @@ class ActivityScanController extends Controller
             'status' => $status,
         ]);
 
+        $institution = Institution::query()
+            ->where('code', $activeActivity->category === 'diniyah' ? 'madad' : 'ponpes')
+            ->first();
+        if ($institution) {
+            $whatsapp->attendance(
+                $institution,
+                $student,
+                $activeActivity->category === 'diniyah' ? 'Kegiatan MADAD' : 'Kegiatan Pondok',
+                $activeActivity->name,
+                $status,
+                $attendance->scanned_at
+            );
+        }
+
         return response()->json([
             'ok' => true,
             'already' => false,
@@ -109,5 +144,12 @@ class ActivityScanController extends Controller
 
             ],
         ]);
+    }
+
+    private function categoryFromRequest(Request $request): ?string
+    {
+        $category = $request->query('category');
+
+        return in_array($category, ['umum', 'diniyah'], true) ? $category : null;
     }
 }

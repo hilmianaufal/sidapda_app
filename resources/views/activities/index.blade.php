@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title','Jadwal Kegiatan')
-@section('mobile_title','Kegiatan')
+@section('title', ($category ?? null) === 'diniyah' ? 'Jadwal MADAD' : 'Jadwal Kegiatan')
+@section('mobile_title', ($category ?? null) === 'diniyah' ? 'MADAD' : 'Kegiatan')
 
 @section('content')
 
@@ -19,25 +19,45 @@
   $totalAktif = collect($activities)->where('is_active', true)->count();
   $totalRutin = collect($activities)->where('type', 'routine')->count();
   $totalManual = collect($activities)->where('type', 'manual')->count();
+  $isMadad = ($category ?? null) === 'diniyah';
 @endphp
 
 <x-ui.page-header
-  title="Jadwal Kegiatan"
-  subtitle="Kelola kegiatan rutin, event, dan absensi kegiatan"
-  icon="bi-calendar-check"
+  :title="$isMadad ? 'Jadwal Kegiatan MADAD' : 'Jadwal Kegiatan'"
+  :subtitle="$isMadad ? 'Kegiatan Diniyah terpisah dari kegiatan Pondok' : 'Kelola kegiatan rutin, event, dan absensi kegiatan'"
+  :icon="$isMadad ? 'bi-book' : 'bi-calendar-check'"
 >
   <x-slot:actions>
-    <x-ui.button :href="route('activities.create')">
+    <x-ui.button :href="route('activities.create', array_filter(['category' => $category ?? null]))">
       <i class="bi bi-plus-lg"></i>
       Tambah
     </x-ui.button>
 
-    <x-ui.button :href="route('activities.scan')" variant="secondary">
+    <x-ui.button :href="route('activities.scan', array_filter(['category' => $category ?? null]))" variant="secondary">
       <i class="bi bi-qr-code"></i>
       Scan
     </x-ui.button>
+
+    @if($isMadad)
+      <x-ui.button :href="route('dashboard.institution', 'madad')" variant="secondary">
+        <i class="bi bi-speedometer2"></i>
+        Dashboard MADAD
+      </x-ui.button>
+    @endif
   </x-slot:actions>
 </x-ui.page-header>
+
+<div class="mb-6 flex flex-wrap gap-2 rounded-2xl bg-white p-2 shadow-sm">
+  @if(auth()->user()->canAccessInstitution('ponpes') && auth()->user()->canAccessInstitution('madad'))
+    <a href="{{ route('activities.index') }}" class="rounded-xl px-4 py-2 text-sm font-black {{ empty($category) ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100' }}">Semua</a>
+  @endif
+  @if(auth()->user()->canAccessInstitution('ponpes'))
+    <a href="{{ route('activities.index', ['category' => 'umum']) }}" class="rounded-xl px-4 py-2 text-sm font-black {{ ($category ?? null) === 'umum' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:bg-slate-100' }}">Kegiatan Pondok</a>
+  @endif
+  @if(auth()->user()->canAccessInstitution('madad'))
+    <a href="{{ route('activities.index', ['category' => 'diniyah']) }}" class="rounded-xl px-4 py-2 text-sm font-black {{ $isMadad ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100' }}">Kegiatan MADAD</a>
+  @endif
+</div>
 
 <div class="mb-6 grid grid-cols-3 gap-4">
   <x-ui.stat-card label="Aktif" :value="$totalAktif" icon="bi-check-circle" tone="emerald" />
@@ -88,6 +108,9 @@
                     </div>
                     <div class="text-sm font-semibold text-slate-500">
                       Urutan {{ $activity->order }}
+                    </div>
+                    <div class="mt-1 text-xs font-black {{ $activity->category === 'diniyah' ? 'text-amber-600' : 'text-emerald-600' }}">
+                      {{ $activity->category === 'diniyah' ? 'MADAD / Diniyah' : 'Pondok' }}
                     </div>
                   </div>
                 </div>
@@ -140,14 +163,14 @@
               <td class="px-6 py-4">
                 <div class="flex justify-end gap-2">
                   <x-ui.button
-                    :href="route('activities.edit', $activity)"
+                    :href="route('activities.edit', ['activity' => $activity] + ($category ? ['category' => $category] : []))"
                     variant="secondary">
                     <i class="bi bi-pencil"></i>
                   </x-ui.button>
 
                   <form
                     method="POST"
-                    action="{{ route('activities.destroy', $activity) }}"
+                    action="{{ route('activities.destroy', ['activity' => $activity] + ($category ? ['category' => $category] : [])) }}"
                     onsubmit="return confirm('Hapus kegiatan ini?')">
                     @csrf
                     @method('DELETE')
@@ -197,6 +220,9 @@
                 -
                 {{ substr($activity->end_time, 0, 5) }}
               </div>
+              <div class="mt-1 text-xs font-black {{ $activity->category === 'diniyah' ? 'text-amber-600' : 'text-emerald-600' }}">
+                {{ $activity->category === 'diniyah' ? 'MADAD / Diniyah' : 'Pondok' }}
+              </div>
             </div>
 
             @if($activity->is_active)
@@ -230,7 +256,7 @@
 
           <div class="mt-4 grid grid-cols-2 gap-2">
             <x-ui.button
-              :href="route('activities.edit', $activity)"
+              :href="route('activities.edit', ['activity' => $activity] + ($category ? ['category' => $category] : []))"
               variant="secondary"
               class="justify-center">
               Edit
@@ -238,7 +264,7 @@
 
             <form
               method="POST"
-              action="{{ route('activities.destroy', $activity) }}"
+              action="{{ route('activities.destroy', ['activity' => $activity] + ($category ? ['category' => $category] : [])) }}"
               onsubmit="return confirm('Hapus kegiatan ini?')">
               @csrf
               @method('DELETE')
