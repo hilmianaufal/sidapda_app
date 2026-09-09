@@ -40,9 +40,9 @@
     <x-ui.badge tone="emerald">{{ $institutions->count() }} Unit</x-ui.badge>
   </div>
 
-  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
     @if($institutions->isEmpty())
-      <div class="rounded-[1.6rem] border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-700 sm:col-span-2 xl:col-span-4">
+      <div class="rounded-[1.6rem] border border-amber-200 bg-amber-50 p-5 text-sm font-bold text-amber-700 sm:col-span-2 xl:col-span-5">
         Akun ini belum diberi akses lembaga. Hubungi admin untuk memilih lembaga pada menu Pengaturan → Users.
       </div>
     @endif
@@ -50,7 +50,8 @@
       @php
         $styles = match($institution->code) {
           'mi' => ['box' => 'border-blue-100 bg-blue-50', 'icon' => 'bg-blue-500', 'text' => 'text-blue-700'],
-          'sekolah-pagi' => ['box' => 'border-purple-100 bg-purple-50', 'icon' => 'bg-purple-500', 'text' => 'text-purple-700'],
+          'mts' => ['box' => 'border-purple-100 bg-purple-50', 'icon' => 'bg-purple-500', 'text' => 'text-purple-700'],
+          'ma' => ['box' => 'border-rose-100 bg-rose-50', 'icon' => 'bg-rose-500', 'text' => 'text-rose-700'],
           'madad' => ['box' => 'border-amber-100 bg-amber-50', 'icon' => 'bg-amber-500', 'text' => 'text-amber-700'],
           default => ['box' => 'border-emerald-100 bg-emerald-50', 'icon' => 'bg-emerald-600', 'text' => 'text-emerald-700'],
         };

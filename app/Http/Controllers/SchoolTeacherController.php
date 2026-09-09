@@ -156,16 +156,21 @@ class SchoolTeacherController extends Controller
     {
         $this->authorizeInstitution($institution);
 
-        $examples = $institution->code === 'mi'
-            ? [
+        $examples = match ($institution->code) {
+            'mi' => [
                 ['MI-G001', 'Ahmad Fauzi', 'laki-laki', 'MI', '081234567890', 'aktif'],
                 ['MI-G002', 'Siti Aminah', 'perempuan', 'MI', '081234567891', 'aktif'],
-            ]
-            : [
+            ],
+            'mts' => [
                 ['G001', 'Ahmad Fauzi', 'laki-laki', 'MTs', '081234567890', 'aktif'],
+                ['G002', 'Siti Aminah', 'perempuan', 'MTs', '081234567891', 'aktif'],
+            ],
+            'ma' => [
+                ['G001', 'Ahmad Fauzi', 'laki-laki', 'MA', '081234567890', 'aktif'],
                 ['G002', 'Siti Aminah', 'perempuan', 'MA', '081234567891', 'aktif'],
-                ['G003', 'Muhammad Ali', 'laki-laki', 'MTs & MA', '081234567892', 'aktif'],
-            ];
+            ],
+            default => [],
+        };
 
         $export = new class($examples) implements FromArray, ShouldAutoSize, WithHeadings {
             public function __construct(
@@ -272,7 +277,7 @@ class SchoolTeacherController extends Controller
     {
         abort_unless(
             $institution->is_active
-                && in_array($institution->code, ['mi', 'sekolah-pagi'], true),
+                && in_array($institution->code, ['mi', 'mts', 'ma'], true),
             404
         );
 
@@ -292,13 +297,12 @@ class SchoolTeacherController extends Controller
 
     private function levelOptions(Institution $institution): array
     {
-        return $institution->code === 'mi'
-            ? ['mi' => 'MI']
-            : [
-                'mts' => 'MTs',
-                'ma' => 'MA',
-                'mts_ma' => 'MTs & MA',
-            ];
+        return match ($institution->code) {
+            'mi' => ['mi' => 'MI'],
+            'mts' => ['mts' => 'MTs'],
+            'ma' => ['ma' => 'MA'],
+            default => [],
+        };
     }
 
     private function normalizeFilter(mixed $value, int $maxLength): ?string

@@ -7,6 +7,7 @@ use App\Models\SchoolAttendanceSetting;
 use App\Models\SchoolTeacher;
 use App\Models\SchoolTeacherAttendance;
 use App\Models\SchoolTeacherAttendanceExcuse;
+use App\Services\TeacherGeofenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,13 +71,19 @@ class SchoolTeacherAttendanceController extends Controller
         ]);
     }
 
-    public function store(Request $request, Institution $institution): JsonResponse
-    {
+    public function store(
+        Request $request,
+        Institution $institution,
+        TeacherGeofenceService $geofence
+    ): JsonResponse {
         $this->authorizeInstitution($institution);
 
         $data = $request->validate([
             'token' => ['required', 'string', 'max:255'],
             'action' => ['required', 'in:check_in,check_out'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'accuracy' => ['nullable', 'numeric', 'between:0,10000'],
         ]);
 
         $settings = SchoolAttendanceSetting::query()
@@ -86,6 +93,17 @@ class SchoolTeacherAttendanceController extends Controller
 
         if (!$settings) {
             return $this->error('Pengaturan absensi lembaga belum aktif.');
+        }
+
+        $location = $geofence->verify(
+            $settings,
+            isset($data['latitude']) ? (float) $data['latitude'] : null,
+            isset($data['longitude']) ? (float) $data['longitude'] : null,
+            isset($data['accuracy']) ? (float) $data['accuracy'] : null
+        );
+
+        if (! $location['valid']) {
+            return $this->error($location['message']);
         }
 
         $token = trim($data['token']);
@@ -156,7 +174,8 @@ class SchoolTeacherAttendanceController extends Controller
             $action,
             $timeField,
             $statusField,
-            $status
+            $status,
+            $location
         ) {
             $attendance = SchoolTeacherAttendance::query()
                 ->where('institution_id', $institution->id)
@@ -187,6 +206,15 @@ class SchoolTeacherAttendanceController extends Controller
 
             $attendance->{$timeField} = $now;
             $attendance->{$statusField} = $status;
+
+            if ($location['enabled']) {
+                $prefix = $action === 'check_in' ? 'check_in' : 'check_out';
+                $attendance->{$prefix.'_latitude'} = $location['latitude'];
+                $attendance->{$prefix.'_longitude'} = $location['longitude'];
+                $attendance->{$prefix.'_accuracy_meters'} = $location['accuracy'];
+                $attendance->{$prefix.'_distance_meters'} = $location['distance'];
+            }
+
             $attendance->updated_by = auth()->id();
             $attendance->save();
 
@@ -200,6 +228,7 @@ class SchoolTeacherAttendanceController extends Controller
         $savedStatus = $attendance->{$statusField};
         $savedAt = $attendance->{$timeField};
         $statusLabel = $this->statusLabel($savedStatus);
+        $locationPrefix = $action === 'check_in' ? 'check_in' : 'check_out';
 
         return response()->json([
             'ok' => true,
@@ -212,6 +241,12 @@ class SchoolTeacherAttendanceController extends Controller
             'status' => $savedStatus,
             'status_label' => $statusLabel,
             'scanned_at' => $savedAt?->format('H:i:s'),
+            'location' => [
+                'enabled' => (bool) $location['enabled'],
+                'distance_meters' => $attendance->{$locationPrefix.'_distance_meters'},
+                'accuracy_meters' => $attendance->{$locationPrefix.'_accuracy_meters'},
+                'radius_meters' => $location['radius'],
+            ],
             'teacher' => [
                 'id' => $teacher->id,
                 'teacher_code' => $teacher->teacher_code,
@@ -226,7 +261,7 @@ class SchoolTeacherAttendanceController extends Controller
     {
         abort_unless(
             $institution->is_active
-                && in_array($institution->code, ['mi', 'sekolah-pagi'], true),
+                && in_array($institution->code, ['mi', 'mts', 'ma'], true),
             404
         );
 

@@ -185,6 +185,8 @@ class StudentController extends Controller
             }
 
             $data['institution_level'] = $level;
+        } elseif ($institution && in_array($institution->code, ['mi', 'mts', 'ma'], true)) {
+            $data['institution_level'] = $institution->code;
         }
 
         if ($institution?->code === 'ponpes') {

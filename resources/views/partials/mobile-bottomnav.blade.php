@@ -3,7 +3,7 @@
   $mobileInstitutions = $mobileUser?->accessibleInstitutions()->get() ?? collect();
   $mobileCodes = $mobileInstitutions->pluck('code')->all();
   $mobileFirstInstitution = $mobileInstitutions->first();
-  $mobileSchool = $mobileInstitutions->first(fn ($institution) => in_array($institution->code, ['sekolah-pagi', 'mi'], true));
+  $mobileSchool = $mobileInstitutions->first(fn ($institution) => in_array($institution->code, ['mi', 'mts', 'ma'], true));
   $mobileHasPondok = in_array('ponpes', $mobileCodes, true);
   $mobileHasMadad = in_array('madad', $mobileCodes, true);
 

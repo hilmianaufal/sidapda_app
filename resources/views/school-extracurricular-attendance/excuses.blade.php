@@ -5,7 +5,7 @@
 
 @section('content')
 <x-ui.page-header
-  title="Izin & Sakit Ekstrakurikuler Sekolah Pagi"
+  :title="'Izin & Sakit Ekstrakurikuler '.$institution->short_name"
   :subtitle="$institution->name.' • Tahun ajaran '.$academicYear"
   icon="bi-file-earmark-medical"
 >

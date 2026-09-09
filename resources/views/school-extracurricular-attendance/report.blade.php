@@ -5,7 +5,7 @@
 
 @section('content')
 <x-ui.page-header
-  title="Rekap Absensi Ekstrakurikuler Sekolah Pagi"
+  :title="'Rekap Absensi Ekstrakurikuler '.$institution->short_name"
   :subtitle="$institution->name.' • Tahun ajaran '.$academicYear"
   icon="bi-clipboard-data"
 >

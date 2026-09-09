@@ -31,6 +31,16 @@ class SchoolAttendanceSettingController extends Controller
             'check_out_open' => ['required', 'date_format:H:i'],
             'check_out_time' => ['required', 'date_format:H:i'],
             'check_out_deadline' => ['required', 'date_format:H:i'],
+            'teacher_geofence_enabled' => ['required', 'boolean'],
+            'teacher_geofence_latitude' => ['nullable', 'required_if:teacher_geofence_enabled,1', 'numeric', 'between:-90,90'],
+            'teacher_geofence_longitude' => ['nullable', 'required_if:teacher_geofence_enabled,1', 'numeric', 'between:-180,180'],
+            'teacher_geofence_radius_meters' => ['required', 'integer', 'between:20,5000'],
+            'teacher_geofence_max_accuracy_meters' => ['required', 'integer', 'between:10,2000'],
+        ], [
+            'teacher_geofence_latitude.required_if' => 'Latitude titik sekolah wajib diisi saat zona guru diaktifkan.',
+            'teacher_geofence_longitude.required_if' => 'Longitude titik sekolah wajib diisi saat zona guru diaktifkan.',
+            'teacher_geofence_radius_meters.between' => 'Radius zona harus antara 20 sampai 5.000 meter.',
+            'teacher_geofence_max_accuracy_meters.between' => 'Batas akurasi GPS harus antara 10 sampai 2.000 meter.',
         ]);
 
         if (! $this->isOrdered(
@@ -53,11 +63,20 @@ class SchoolAttendanceSettingController extends Controller
             ]);
         }
 
-        foreach ($data as $field => $time) {
+        foreach ([
+            'check_in_open',
+            'check_in_time',
+            'check_in_deadline',
+            'check_out_open',
+            'check_out_time',
+            'check_out_deadline',
+        ] as $field) {
+            $time = $data[$field];
             $data[$field] = $time.':00';
         }
 
         $data['is_active'] = true;
+        $data['teacher_geofence_enabled'] = (bool) $data['teacher_geofence_enabled'];
 
         SchoolAttendanceSetting::query()->updateOrCreate(
             ['institution_id' => $institution->id],
@@ -66,12 +85,12 @@ class SchoolAttendanceSettingController extends Controller
 
         return redirect()
             ->route('school-attendance-settings.edit', $institution)
-            ->with('success', 'Pengaturan waktu '.$institution->short_name.' berhasil disimpan.');
+            ->with('success', 'Pengaturan waktu dan zona '.$institution->short_name.' berhasil disimpan.');
     }
 
     private function ensureSchoolInstitution(Institution $institution): void
     {
-        abort_unless(in_array($institution->code, ['mi', 'sekolah-pagi'], true), 404);
+        abort_unless(in_array($institution->code, ['mi', 'mts', 'ma'], true), 404);
     }
 
     private function isOrdered(string $open, string $official, string $deadline): bool
@@ -97,6 +116,11 @@ class SchoolAttendanceSettingController extends Controller
             'check_out_time' => '13:10:00',
             'check_out_deadline' => '14:00:00',
             'is_active' => true,
+            'teacher_geofence_enabled' => false,
+            'teacher_geofence_latitude' => null,
+            'teacher_geofence_longitude' => null,
+            'teacher_geofence_radius_meters' => 200,
+            'teacher_geofence_max_accuracy_meters' => 100,
         ];
     }
 }

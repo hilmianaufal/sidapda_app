@@ -16,8 +16,16 @@ class SchoolTeacherAttendance extends Model
         'level_snapshot',
         'check_in_at',
         'check_in_status',
+        'check_in_latitude',
+        'check_in_longitude',
+        'check_in_accuracy_meters',
+        'check_in_distance_meters',
         'check_out_at',
         'check_out_status',
+        'check_out_latitude',
+        'check_out_longitude',
+        'check_out_accuracy_meters',
+        'check_out_distance_meters',
         'created_by',
         'updated_by',
     ];
@@ -28,6 +36,14 @@ class SchoolTeacherAttendance extends Model
             'attendance_date' => 'date',
             'check_in_at' => 'datetime',
             'check_out_at' => 'datetime',
+            'check_in_latitude' => 'float',
+            'check_in_longitude' => 'float',
+            'check_in_accuracy_meters' => 'float',
+            'check_in_distance_meters' => 'float',
+            'check_out_latitude' => 'float',
+            'check_out_longitude' => 'float',
+            'check_out_accuracy_meters' => 'float',
+            'check_out_distance_meters' => 'float',
         ];
     }
 

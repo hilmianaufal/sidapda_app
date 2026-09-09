@@ -62,54 +62,56 @@
                             'icon' => 'bi-house-door',
                             'permission' => 'scan_qr',
                         ],
-                        [
-                            'label' => 'Absensi Ekstrakurikuler',
-                            'route' => 'school-extracurricular-attendance.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-extracurricular-attendance.index', 'school-extracurricular-attendance.store'],
-                            'icon' => 'bi-trophy',
-                            'permission' => 'scan_qr',
-                        ],
-                        [
-                            'label' => 'Izin & Sakit Ekstra',
-                            'route' => 'school-extracurricular-attendance.excuses.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-extracurricular-attendance.excuses.*'],
-                            'icon' => 'bi-file-earmark-medical',
-                            'permission' => 'scan_qr',
-                        ],
-                        [
-                            'label' => 'Absensi Sekolah Pagi',
-                            'route' => 'school-attendance.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-attendance.index', 'school-attendance.store'],
-                            'icon' => 'bi-person-check',
-                            'permission' => 'scan_qr',
-                        ],
-                        [
-                            'label' => 'Izin & Sakit Sekolah',
-                            'route' => 'school-attendance.excuses.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-attendance.excuses.*'],
-                            'icon' => 'bi-file-earmark-medical',
-                            'permission' => 'scan_qr',
-                        ],
-                        [
-                            'label' => 'Absensi Guru Sekolah',
-                            'route' => 'school-teacher-attendance.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-teacher-attendance.index', 'school-teacher-attendance.store'],
-                            'icon' => 'bi-person-badge',
-                            'permission' => 'scan_qr',
-                        ],
-                        [
-                            'label' => 'Izin & Sakit Guru',
-                            'route' => 'school-teacher-attendance.excuses.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-teacher-attendance.excuses.*'],
-                            'icon' => 'bi-file-earmark-medical',
-                            'permission' => 'scan_qr',
-                        ],
+                        ...collect(['mts' => 'MTs', 'ma' => 'MA'])->flatMap(fn ($label, $code) => [
+                            [
+                                'label' => 'Absensi Siswa '.$label,
+                                'route' => 'school-attendance.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-attendance.index', 'school-attendance.store'],
+                                'icon' => 'bi-person-check',
+                                'permission' => 'scan_qr',
+                            ],
+                            [
+                                'label' => 'Izin & Sakit Siswa '.$label,
+                                'route' => 'school-attendance.excuses.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-attendance.excuses.*'],
+                                'icon' => 'bi-file-earmark-medical',
+                                'permission' => 'scan_qr',
+                            ],
+                            [
+                                'label' => 'Absensi Guru '.$label,
+                                'route' => 'school-teacher-attendance.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-teacher-attendance.index', 'school-teacher-attendance.store'],
+                                'icon' => 'bi-person-badge',
+                                'permission' => 'scan_qr',
+                            ],
+                            [
+                                'label' => 'Izin & Sakit Guru '.$label,
+                                'route' => 'school-teacher-attendance.excuses.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-teacher-attendance.excuses.*'],
+                                'icon' => 'bi-file-earmark-medical',
+                                'permission' => 'scan_qr',
+                            ],
+                            [
+                                'label' => 'Absensi Ekstra '.$label,
+                                'route' => 'school-extracurricular-attendance.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-extracurricular-attendance.index', 'school-extracurricular-attendance.store'],
+                                'icon' => 'bi-trophy',
+                                'permission' => 'scan_qr',
+                            ],
+                            [
+                                'label' => 'Izin & Sakit Ekstra '.$label,
+                                'route' => 'school-extracurricular-attendance.excuses.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-extracurricular-attendance.excuses.*'],
+                                'icon' => 'bi-file-earmark-medical',
+                                'permission' => 'scan_qr',
+                            ],
+                        ])->all(),
                     ],
                 ],
 
@@ -136,30 +138,35 @@
                 ],
 
                 [
-                    'label' => 'Rekap Ekstrakurikuler',
-                    'route' => 'school-extracurricular-attendance.reports.index',
-                    'params' => ['institution' => 'sekolah-pagi'],
-                    'active' => ['school-extracurricular-attendance.reports.*'],
-                    'icon' => 'bi-clipboard2-check',
-                    'permission' => 'view_reports',
-                ],
-
-                [
-                    'label' => 'Rekap Siswa Sekolah Pagi',
-                    'route' => 'school-attendance.reports.index',
-                    'params' => ['institution' => 'sekolah-pagi'],
-                    'active' => ['school-attendance.reports.*'],
+                    'label' => 'Rekap MTs & MA',
                     'icon' => 'bi-clipboard-data',
                     'permission' => 'view_reports',
-                ],
-
-                [
-                    'label' => 'Rekap Guru Sekolah Pagi',
-                    'route' => 'school-teacher-attendance.reports.index',
-                    'params' => ['institution' => 'sekolah-pagi'],
-                    'active' => ['school-teacher-attendance.reports.*'],
-                    'icon' => 'bi-clipboard-check',
-                    'permission' => 'view_reports',
+                    'children' => collect(['mts' => 'MTs', 'ma' => 'MA'])->flatMap(fn ($label, $code) => [
+                        [
+                            'label' => 'Rekap Siswa '.$label,
+                            'route' => 'school-attendance.reports.index',
+                            'params' => ['institution' => $code],
+                            'active' => ['school-attendance.reports.*'],
+                            'icon' => 'bi-clipboard-data',
+                            'permission' => 'view_reports',
+                        ],
+                        [
+                            'label' => 'Rekap Guru '.$label,
+                            'route' => 'school-teacher-attendance.reports.index',
+                            'params' => ['institution' => $code],
+                            'active' => ['school-teacher-attendance.reports.*'],
+                            'icon' => 'bi-clipboard-check',
+                            'permission' => 'view_reports',
+                        ],
+                        [
+                            'label' => 'Rekap Ekstra '.$label,
+                            'route' => 'school-extracurricular-attendance.reports.index',
+                            'params' => ['institution' => $code],
+                            'active' => ['school-extracurricular-attendance.reports.*'],
+                            'icon' => 'bi-clipboard2-check',
+                            'permission' => 'view_reports',
+                        ],
+                    ])->all(),
                 ],
 
                 [
@@ -193,22 +200,24 @@
                             'icon' => 'bi-arrow-up-circle',
                             'permission' => 'manage_students',
                         ],
-                        [
-                            'label' => 'Data Guru Sekolah Pagi',
-                            'route' => 'school-teachers.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-teachers.*'],
-                            'icon' => 'bi-person-vcard',
-                            'permission' => 'manage_students',
-                        ],
-                        [
-                            'label' => 'Ekstrakurikuler Sekolah',
-                            'route' => 'school-extracurriculars.index',
-                            'params' => ['institution' => 'sekolah-pagi'],
-                            'active' => ['school-extracurriculars.*'],
-                            'icon' => 'bi-trophy',
-                            'permission' => 'manage_activities',
-                        ],
+                        ...collect(['mts' => 'MTs', 'ma' => 'MA'])->flatMap(fn ($label, $code) => [
+                            [
+                                'label' => 'Data Guru '.$label,
+                                'route' => 'school-teachers.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-teachers.*'],
+                                'icon' => 'bi-person-vcard',
+                                'permission' => 'manage_students',
+                            ],
+                            [
+                                'label' => 'Ekstrakurikuler '.$label,
+                                'route' => 'school-extracurriculars.index',
+                                'params' => ['institution' => $code],
+                                'active' => ['school-extracurriculars.*'],
+                                'icon' => 'bi-trophy',
+                                'permission' => 'manage_activities',
+                            ],
+                        ])->all(),
                         [
                             'label' => 'Jadwal Sholat',
                             'route' => 'prayers.index',
@@ -343,15 +352,15 @@
                             'permission' => null,
                             'settings_access' => true,
                         ],
-                        [
-                            'label' => 'Profil & WA MTs & MA',
+                        ...collect(['mts' => 'MTs', 'ma' => 'MA'])->map(fn ($label, $code) => [
+                            'label' => 'Profil & WA '.$label,
                             'route' => 'institution-settings.edit',
-                            'params' => ['institution' => 'sekolah-pagi'],
+                            'params' => ['institution' => $code],
                             'active' => ['institution-settings.*'],
                             'icon' => 'bi-building-gear',
                             'permission' => null,
                             'settings_access' => true,
-                        ],
+                        ])->values()->all(),
                         [
                             'label' => 'Profil & WA MADAD',
                             'route' => 'institution-settings.edit',
@@ -362,21 +371,21 @@
                             'settings_access' => true,
                         ],
                         [
-                            'label' => 'Waktu Absensi MI',
+                            'label' => 'Waktu & Zona MI',
                             'route' => 'school-attendance-settings.edit',
                             'params' => ['institution' => 'mi'],
                             'active' => ['school-attendance-settings.*'],
                             'icon' => 'bi-clock-history',
                             'permission' => 'manage_users',
                         ],
-                        [
-                            'label' => 'Waktu Sekolah Pagi',
+                        ...collect(['mts' => 'MTs', 'ma' => 'MA'])->map(fn ($label, $code) => [
+                            'label' => 'Waktu & Zona '.$label,
                             'route' => 'school-attendance-settings.edit',
-                            'params' => ['institution' => 'sekolah-pagi'],
+                            'params' => ['institution' => $code],
                             'active' => ['school-attendance-settings.*'],
                             'icon' => 'bi-alarm',
                             'permission' => 'manage_users',
-                        ],
+                        ])->values()->all(),
                         [
                             'label' => 'Users',
                             'route' => 'users.index',
@@ -398,7 +407,7 @@
                 }
 
                 if (str_starts_with($route, 'students.')) {
-                    return ['ponpes', 'mi', 'sekolah-pagi', 'madad'];
+                    return ['ponpes', 'mi', 'mts', 'ma', 'madad'];
                 }
 
                 if (str_starts_with($route, 'activities.')) {
@@ -447,6 +456,27 @@
 
                 return $requiredCodes === [] || array_intersect($requiredCodes, $accessCodes) !== [];
             };
+
+            $routeInstitution = request()->route('institution');
+            $routeInstitutionCode = $routeInstitution instanceof \App\Models\Institution
+                ? $routeInstitution->code
+                : (is_string($routeInstitution) ? $routeInstitution : null);
+
+            $isMenuItemActive = function (array $item) use ($routeInstitutionCode): bool {
+                $itemInstitution = $item['params']['institution'] ?? null;
+
+                if ($itemInstitution && $routeInstitutionCode && $itemInstitution !== $routeInstitutionCode) {
+                    return false;
+                }
+
+                foreach ($item['active'] ?? [] as $activeRoute) {
+                    if (request()->routeIs($activeRoute)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
         @endphp
 
         @foreach($menuGroups as $menu)
@@ -465,18 +495,12 @@
 
                 if ($hasChildren) {
                     foreach ($visibleChildren as $child) {
-                        foreach ($child['active'] as $activeRoute) {
-                            if (request()->routeIs($activeRoute)) {
-                                $isActive = true;
-                            }
-                        }
-                    }
-                } else {
-                    foreach ($menu['active'] as $activeRoute) {
-                        if (request()->routeIs($activeRoute)) {
+                        if ($isMenuItemActive($child)) {
                             $isActive = true;
                         }
                     }
+                } else {
+                    $isActive = $isMenuItemActive($menu);
                 }
             @endphp
 
@@ -508,13 +532,7 @@
                         <div class="mt-2 space-y-1 pl-5">
                             @foreach($visibleChildren as $child)
                                 @php
-                                    $childActive = false;
-
-                                    foreach ($child['active'] as $activeRoute) {
-                                        if (request()->routeIs($activeRoute)) {
-                                            $childActive = true;
-                                        }
-                                    }
+                                    $childActive = $isMenuItemActive($child);
                                 @endphp
 
                                 <a

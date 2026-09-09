@@ -108,6 +108,8 @@ class StudentsImport implements ToCollection, WithHeadingRow
 
                 if ($this->institution->code === 'madad') {
                     $institutionLevel = StudentEnrollment::normalizeMadadLevel($institutionLevel) ?? '';
+                } elseif (in_array($this->institution->code, ['mi', 'mts', 'ma'], true)) {
+                    $institutionLevel = $this->institution->code;
                 }
 
                 $enrollment->fill([

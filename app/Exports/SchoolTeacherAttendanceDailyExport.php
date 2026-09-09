@@ -34,8 +34,12 @@ class SchoolTeacherAttendanceDailyExport extends DefaultValueBinder implements F
             'Status Harian',
             'Jam Masuk',
             'Status Masuk',
+            'Jarak Masuk (m)',
+            'Akurasi Masuk (m)',
             'Jam Pulang',
             'Status Pulang',
+            'Jarak Pulang (m)',
+            'Akurasi Pulang (m)',
             'Keterangan',
         ];
     }
@@ -61,8 +65,12 @@ class SchoolTeacherAttendanceDailyExport extends DefaultValueBinder implements F
                 $row['day_status_label'],
                 $row['check_in_time'] ?: '-',
                 $row['check_in_status_label'],
+                $row['check_in_distance_meters'] ?? '-',
+                $row['check_in_accuracy_meters'] ?? '-',
                 $row['check_out_time'] ?: '-',
                 $row['check_out_status_label'],
+                $row['check_out_distance_meters'] ?? '-',
+                $row['check_out_accuracy_meters'] ?? '-',
                 $row['notes'],
             ])
             ->all();

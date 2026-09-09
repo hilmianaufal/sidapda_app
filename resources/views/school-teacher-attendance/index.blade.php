@@ -45,6 +45,37 @@
   </div>
 </div>
 
+@if($settings->teacher_geofence_enabled)
+  <div class="mb-6 rounded-[1.75rem] border border-emerald-200 bg-emerald-50 p-4 shadow-lg shadow-emerald-100">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start gap-3">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+          <i class="bi bi-geo-alt-fill"></i>
+        </div>
+        <div>
+          <div class="font-black text-emerald-950">Zona Guru Aktif</div>
+          <div class="mt-1 text-sm font-semibold text-emerald-700">
+            Scan hanya diterima maksimal {{ number_format($settings->teacher_geofence_radius_meters, 0, ',', '.') }} meter dari titik {{ $institution->short_name }}.
+          </div>
+          <div id="teacherLocationStatus" class="mt-1 text-xs font-bold text-emerald-600">
+            Lokasi akan diperiksa saat melakukan scan.
+          </div>
+        </div>
+      </div>
+
+      <button id="btnCheckLocation" type="button" class="rounded-2xl bg-white px-4 py-3 text-sm font-black text-emerald-700 shadow">
+        <i class="bi bi-crosshair"></i>
+        Periksa Lokasi
+      </button>
+    </div>
+  </div>
+@else
+  <div class="mb-6 rounded-[1.75rem] border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-700">
+    <i class="bi bi-geo-alt"></i>
+    Zona absensi guru belum diaktifkan oleh admin untuk {{ $institution->short_name }}.
+  </div>
+@endif
+
 <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
   <x-ui.stat-card label="Guru Aktif" :value="$totalTeachers" icon="bi-people" tone="blue" />
   <x-ui.stat-card label="Sudah Masuk" :value="$checkedIn" icon="bi-box-arrow-in-right" tone="emerald" />
@@ -194,8 +225,10 @@
             <th class="px-3 py-3">Jenjang</th>
             <th class="px-3 py-3">Masuk</th>
             <th class="px-3 py-3">Status Masuk</th>
+            <th class="px-3 py-3">Zona Masuk</th>
             <th class="px-3 py-3">Pulang</th>
             <th class="px-3 py-3">Status Pulang</th>
+            <th class="px-3 py-3">Zona Pulang</th>
           </tr>
         </thead>
         <tbody>
@@ -233,16 +266,22 @@
                   {{ $checkInLabel }}
                 </span>
               </td>
+              <td class="px-3 py-3 text-xs font-bold text-slate-600">
+                {{ $attendance->check_in_distance_meters !== null ? number_format($attendance->check_in_distance_meters, 0, ',', '.').' m' : '-' }}
+              </td>
               <td class="px-3 py-3 font-black text-slate-700">{{ $attendance->check_out_at?->format('H:i:s') ?? '-' }}</td>
               <td class="px-3 py-3">
                 <span class="rounded-full px-3 py-1 text-xs font-black {{ $attendance->check_out_status === 'pulang_cepat' ? 'bg-red-100 text-red-700' : ($attendance->check_out_status ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500') }}">
                   {{ $checkOutLabel }}
                 </span>
               </td>
+              <td class="px-3 py-3 text-xs font-bold text-slate-600">
+                {{ $attendance->check_out_distance_meters !== null ? number_format($attendance->check_out_distance_meters, 0, ',', '.').' m' : '-' }}
+              </td>
             </tr>
           @empty
             <tr>
-              <td colspan="6" class="px-4 py-10 text-center font-bold text-slate-400">Belum ada absensi guru hari ini.</td>
+              <td colspan="8" class="px-4 py-10 text-center font-bold text-slate-400">Belum ada absensi guru hari ini.</td>
             </tr>
           @endforelse
         </tbody>
@@ -260,6 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const csrf = @json(csrf_token());
   const scanUrl = @json(route('school-teacher-attendance.store', $institution));
   const defaultPhoto = @json(asset('images/default.jpg'));
+  const geofenceEnabled = @json((bool) $settings->teacher_geofence_enabled);
+  const geofenceRadius = @json((int) ($settings->teacher_geofence_radius_meters ?? 200));
 
   const alertBox = document.getElementById('alertBox');
   const resultBox = document.getElementById('resultBox');
@@ -272,6 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const scannerWrap = document.getElementById('scannerWrap');
   const manualWrap = document.getElementById('manualWrap');
   const beep = document.getElementById('beepSound');
+  const btnCheckLocation = document.getElementById('btnCheckLocation');
+  const teacherLocationStatus = document.getElementById('teacherLocationStatus');
 
   let action = 'check_in';
   let html5QrCode = null;
@@ -317,6 +360,54 @@ document.addEventListener('DOMContentLoaded', () => {
     beep.play().catch(() => {});
   }
 
+  function updateLocationStatus(message, type = 'info') {
+    if (!teacherLocationStatus) return;
+
+    const colors = {
+      success: 'text-emerald-700',
+      danger: 'text-red-600',
+      info: 'text-emerald-600',
+    };
+
+    teacherLocationStatus.className = `mt-1 text-xs font-bold ${colors[type] ?? colors.info}`;
+    teacherLocationStatus.textContent = message;
+  }
+
+  function currentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!window.isSecureContext || !navigator.geolocation) {
+        reject(new Error('Lokasi tidak tersedia. Pastikan website memakai HTTPS dan izin lokasi browser aktif.'));
+        return;
+      }
+
+      updateLocationStatus('Sedang mengambil lokasi GPS...', 'info');
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const location = {
+            latitude: Number(position.coords.latitude.toFixed(7)),
+            longitude: Number(position.coords.longitude.toFixed(7)),
+            accuracy: Number(position.coords.accuracy.toFixed(2)),
+          };
+
+          updateLocationStatus(`Lokasi ditemukan dengan akurasi sekitar ${Math.round(location.accuracy)} meter.`, 'success');
+          resolve(location);
+        },
+        error => {
+          const messages = {
+            1: 'Izin lokasi ditolak. Aktifkan izin lokasi untuk sidapda.my.id pada pengaturan browser.',
+            2: 'Lokasi tidak ditemukan. Aktifkan GPS lalu coba kembali.',
+            3: 'GPS terlalu lama merespons. Coba berada di area yang lebih terbuka.',
+          };
+          const message = messages[error.code] ?? 'Lokasi perangkat tidak dapat diambil.';
+          updateLocationStatus(message, 'danger');
+          reject(new Error(message));
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      );
+    });
+  }
+
   async function sendToken(rawToken) {
     const token = String(rawToken ?? '').trim();
     if (!token || lock) return;
@@ -331,6 +422,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2500);
 
     try {
+      let location = null;
+
+      if (geofenceEnabled) {
+        location = await currentPosition();
+      }
+
       const response = await fetch(scanUrl, {
         method: 'POST',
         headers: {
@@ -338,7 +435,13 @@ document.addEventListener('DOMContentLoaded', () => {
           'X-CSRF-TOKEN': csrf,
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ token, action }),
+        body: JSON.stringify({
+          token,
+          action,
+          latitude: location?.latitude ?? null,
+          longitude: location?.longitude ?? null,
+          accuracy: location?.accuracy ?? null,
+        }),
       });
 
       const json = await response.json();
@@ -358,6 +461,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const warning = ['terlambat', 'pulang_cepat'].includes(json.status);
       const photo = json.teacher.photo_url ?? defaultPhoto;
       const tone = warning ? 'from-amber-500 to-orange-400' : 'from-emerald-600 to-lime-500';
+      const locationLabel = json.location?.enabled && json.location?.distance_meters !== null
+        ? `${Math.round(json.location.distance_meters)} meter dari titik sekolah`
+        : 'Zona lokasi tidak aktif';
+
+      if (json.location?.enabled && json.location?.distance_meters !== null) {
+        updateLocationStatus(`Lokasi diterima: ${locationLabel} (batas ${Math.round(json.location.radius_meters ?? geofenceRadius)} meter).`, 'success');
+      }
 
       showAlert(json.already ? 'warning' : 'success', json.message ?? 'Berhasil.');
       playBeep();
@@ -389,10 +499,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="mt-4 inline-flex rounded-full bg-white px-4 py-2 text-xs font-black ${warning ? 'text-amber-700' : 'text-emerald-700'}">
             ${escapeHtml(json.status_label).toUpperCase()}
           </div>
+          ${json.location?.enabled ? `<div class="mt-3 text-xs font-bold text-white/80"><i class="bi bi-geo-alt-fill"></i> ${escapeHtml(locationLabel)}</div>` : ''}
         </div>`;
     } catch (error) {
-      showAlert('danger', 'Koneksi bermasalah. Coba kembali.');
-      speak('Koneksi bermasalah');
+      const message = error?.message || 'Koneksi bermasalah. Coba kembali.';
+      showAlert('danger', message);
+      speak(message);
     } finally {
       setTimeout(() => lock = false, 900);
     }
@@ -482,6 +594,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnStart.addEventListener('click', startScan);
   btnStop.addEventListener('click', stopScan);
+
+  btnCheckLocation?.addEventListener('click', async () => {
+    btnCheckLocation.disabled = true;
+    try {
+      await currentPosition();
+      showAlert('success', `GPS siap. Lokasi akan diperiksa kembali saat scan dengan batas ${geofenceRadius} meter.`);
+    } catch (error) {
+      showAlert('danger', error?.message || 'Lokasi tidak dapat diperiksa.');
+    } finally {
+      btnCheckLocation.disabled = false;
+    }
+  });
 
   scannerInput.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;

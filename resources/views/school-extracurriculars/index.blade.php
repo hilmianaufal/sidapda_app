@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Ekstrakurikuler Sekolah Pagi')
+@section('title', 'Ekstrakurikuler '.$institution->short_name)
 @section('mobile_title', 'Ekstrakurikuler')
 
 @section('content')
@@ -17,8 +17,8 @@
 @endphp
 
 <x-ui.page-header
-  title="Ekstrakurikuler Sekolah Pagi"
-  :subtitle="$institution->name.' • Jadwal MTs & MA terpisah dari kegiatan pondok'"
+  :title="'Ekstrakurikuler '.$institution->short_name"
+  :subtitle="$institution->name.' • Jadwal terpisah dari lembaga lain dan kegiatan pondok'"
   icon="bi-trophy"
 >
   <x-slot:actions>
@@ -35,7 +35,7 @@
       Izin & Sakit
     </x-ui.button>
     <x-ui.button :href="route('dashboard.institution', $institution)" variant="secondary">
-      Dashboard MTs & MA
+      Dashboard {{ $institution->short_name }}
     </x-ui.button>
   </x-slot:actions>
 </x-ui.page-header>
@@ -88,13 +88,11 @@
         </div>
 
         <div>
-          <label for="level" class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Peserta</label>
-          <select id="level" name="level" required class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100">
-            <option value="">Pilih jenjang</option>
-            <option value="mts" @selected(old('level') === 'mts')>MTs</option>
-            <option value="ma" @selected(old('level') === 'ma')>MA</option>
-            <option value="mts_ma" @selected(old('level') === 'mts_ma')>MTs & MA</option>
-          </select>
+          <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Peserta</label>
+          <input type="hidden" name="level" value="{{ $institution->code }}">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700">
+            {{ $institution->short_name }}
+          </div>
         </div>
 
         <div>
@@ -153,13 +151,6 @@
       <form method="GET" action="{{ route('school-extracurriculars.index', $institution) }}" class="grid gap-3 sm:grid-cols-2">
         <input name="q" value="{{ $q }}" placeholder="Cari kegiatan atau pembina" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100">
 
-        <select name="level" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100">
-          <option value="">Semua jenjang</option>
-          <option value="mts" @selected($level === 'mts')>MTs</option>
-          <option value="ma" @selected($level === 'ma')>MA</option>
-          <option value="mts_ma" @selected($level === 'mts_ma')>MTs & MA</option>
-        </select>
-
         <select name="day" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100">
           <option value="">Semua hari</option>
           @foreach($dayOptions as $number => $label)
@@ -183,7 +174,7 @@
     <x-ui.card padding="p-0">
       <div class="border-b border-slate-100 px-5 py-4">
         <div class="text-lg font-black text-slate-900">Daftar Ekstrakurikuler</div>
-        <div class="text-sm font-medium text-slate-500">Jadwal ini khusus Sekolah Pagi dan tidak tercampur kegiatan pondok.</div>
+        <div class="text-sm font-medium text-slate-500">Jadwal ini khusus {{ $institution->short_name }} dan tidak tercampur dengan lembaga lain.</div>
       </div>
 
       <div class="overflow-x-auto">

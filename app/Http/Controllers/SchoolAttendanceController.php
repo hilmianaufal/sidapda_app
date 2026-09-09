@@ -255,7 +255,7 @@ class SchoolAttendanceController extends Controller
     {
         abort_unless(
             $institution->is_active
-                && in_array($institution->code, ['mi', 'sekolah-pagi'], true),
+                && in_array($institution->code, ['mi', 'mts', 'ma'], true),
             404
         );
 

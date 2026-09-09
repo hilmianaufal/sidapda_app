@@ -112,9 +112,12 @@ class SchoolTeachersImport implements SkipsEmptyRows, ToCollection, WithHeadingR
 
     private function allowedLevels(): array
     {
-        return $this->institution->code === 'mi'
-            ? ['mi']
-            : ['mts', 'ma', 'mts_ma'];
+        return match ($this->institution->code) {
+            'mi' => ['mi'],
+            'mts' => ['mts'],
+            'ma' => ['ma'],
+            default => [],
+        };
     }
 
     private function normalizeActive(string $value): bool

@@ -5,7 +5,7 @@
 
 @section('content')
 <x-ui.page-header
-  title="Absensi Ekstrakurikuler Sekolah Pagi"
+  :title="'Absensi Ekstrakurikuler '.$institution->short_name"
   :subtitle="$institution->name.' • Tahun ajaran '.$academicYear"
   icon="bi-qr-code-scan"
 >
@@ -24,7 +24,7 @@
     </x-ui.button>
     <x-ui.button :href="route('dashboard.institution', $institution)" variant="secondary">
       <i class="bi bi-arrow-left"></i>
-      Dashboard MTs & MA
+      Dashboard {{ $institution->short_name }}
     </x-ui.button>
   </x-slot:actions>
 </x-ui.page-header>

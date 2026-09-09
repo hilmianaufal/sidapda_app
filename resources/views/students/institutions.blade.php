@@ -108,6 +108,14 @@
                   @error('institutions.'.$institution->id.'.level')
                     <div class="mt-1 text-xs font-bold text-red-600">{{ $message }}</div>
                   @enderror
+                @elseif(in_array($institution->code, ['mi', 'mts', 'ma'], true))
+                  <input
+                    type="hidden"
+                    name="institutions[{{ $institution->id }}][level]"
+                    value="{{ $institution->code }}">
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700">
+                    {{ $institution->short_name }}
+                  </div>
                 @else
                   <x-ui.input
                     name="institutions[{{ $institution->id }}][level]"

@@ -321,7 +321,7 @@ class SchoolExtracurricularAttendanceController extends Controller
 
     private function authorizeInstitution(Institution $institution): void
     {
-        abort_unless($institution->is_active && $institution->code === 'sekolah-pagi', 404);
+        abort_unless($institution->is_active && in_array($institution->code, ['mts', 'ma'], true), 404);
 
         $user = auth()->user();
         $hasAccess = $user->hasRole('admin') || $user->institutions()

@@ -17,9 +17,7 @@ class SchoolExtracurricularController extends Controller
         $this->authorizeInstitution($institution);
 
         $q = $this->normalizeFilter($request->query('q'), 100);
-        $level = in_array($request->query('level'), ['mts', 'ma', 'mts_ma'], true)
-            ? $request->query('level')
-            : null;
+        $level = $institution->code;
         $day = is_numeric($request->query('day'))
             && (int) $request->query('day') >= 0
             && (int) $request->query('day') <= 6
@@ -160,7 +158,7 @@ class SchoolExtracurricularController extends Controller
                     ->where(fn ($query) => $query->where('institution_id', $institution->id))
                     ->ignore($extracurricular?->id),
             ],
-            'level' => ['required', 'in:mts,ma,mts_ma'],
+            'level' => ['required', Rule::in([$institution->code])],
             'schedule_day' => ['required', 'integer', 'between:0,6'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
@@ -191,7 +189,7 @@ class SchoolExtracurricularController extends Controller
 
     private function authorizeInstitution(Institution $institution): void
     {
-        abort_unless($institution->is_active && $institution->code === 'sekolah-pagi', 404);
+        abort_unless($institution->is_active && in_array($institution->code, ['mts', 'ma'], true), 404);
 
         $user = auth()->user();
         $hasAccess = $user->hasRole('admin') || $user->institutions()

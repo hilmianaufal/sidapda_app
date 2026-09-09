@@ -69,8 +69,6 @@ class StudentPromotionService
     ): array {
         $grade = $this->gradeNumber($sourceClass);
         $targetClass = $this->incrementClass($sourceClass);
-        $normalizedLevel = mb_strtolower(trim((string) $sourceLevel));
-
         if ($institution->code === 'mi') {
             if ($grade !== null && $grade >= 6) {
                 return $this->graduationSuggestion('Kelas akhir MI');
@@ -81,27 +79,24 @@ class StudentPromotionService
                 : $this->promotionSuggestion($targetClass, 'MI', 'Naik satu kelas MI');
         }
 
-        if ($institution->code === 'sekolah-pagi') {
+        if ($institution->code === 'mts') {
+            if ($grade !== null && $grade >= 9) {
+                return $this->graduationSuggestion('Kelas akhir MTs');
+            }
+
+            return $targetClass === null
+                ? $this->manualSuggestion()
+                : $this->promotionSuggestion($targetClass, 'MTs', 'Naik satu kelas MTs');
+        }
+
+        if ($institution->code === 'ma') {
             if ($grade !== null && $grade >= 12) {
                 return $this->graduationSuggestion('Kelas akhir MA');
             }
 
-            if ($targetClass === null) {
-                return $this->manualSuggestion();
-            }
-
-            $targetLevel = match (true) {
-                $grade !== null && $grade >= 9 => 'MA',
-                $grade !== null => 'MTs',
-                $normalizedLevel === 'ma' => 'MA',
-                default => 'MTs',
-            };
-
-            return $this->promotionSuggestion(
-                $targetClass,
-                $targetLevel,
-                $grade === 9 ? 'Naik ke jenjang MA' : 'Naik satu kelas'
-            );
+            return $targetClass === null
+                ? $this->manualSuggestion()
+                : $this->promotionSuggestion($targetClass, 'MA', 'Naik satu kelas MA');
         }
 
         return $targetClass === null

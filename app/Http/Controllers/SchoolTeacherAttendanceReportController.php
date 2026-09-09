@@ -78,7 +78,7 @@ class SchoolTeacherAttendanceReportController extends Controller
     {
         abort_unless(
             $institution->is_active
-                && in_array($institution->code, ['mi', 'sekolah-pagi'], true),
+                && in_array($institution->code, ['mi', 'mts', 'ma'], true),
             404
         );
 
@@ -113,13 +113,12 @@ class SchoolTeacherAttendanceReportController extends Controller
 
     private function levelOptions(Institution $institution): array
     {
-        return $institution->code === 'mi'
-            ? ['mi' => 'MI']
-            : [
-                'mts' => 'MTs',
-                'ma' => 'MA',
-                'mts_ma' => 'MTs & MA',
-            ];
+        return match ($institution->code) {
+            'mi' => ['mi' => 'MI'],
+            'mts' => ['mts' => 'MTs'],
+            'ma' => ['ma' => 'MA'],
+            default => [],
+        };
     }
 
     private function academicYearForDate(string $date): string

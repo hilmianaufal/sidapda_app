@@ -141,12 +141,26 @@
               <div class="text-xs font-bold {{ $row['check_in_status'] === 'terlambat' ? 'text-amber-600' : 'text-slate-400' }}">
                 {{ $row['check_in_status_label'] }}
               </div>
+              @if($row['check_in_distance_meters'] !== null)
+                <div class="mt-1 text-xs font-bold text-emerald-600">
+                  <i class="bi bi-geo-alt-fill"></i>
+                  {{ number_format($row['check_in_distance_meters'], 0, ',', '.') }} m
+                  <span class="text-slate-400">±{{ number_format($row['check_in_accuracy_meters'], 0, ',', '.') }} m</span>
+                </div>
+              @endif
             </td>
             <td class="px-3 py-3">
               <div class="font-black text-slate-700">{{ $row['check_out_time'] ?: '-' }}</div>
               <div class="text-xs font-bold {{ $row['check_out_status'] === 'pulang_cepat' ? 'text-amber-600' : 'text-slate-400' }}">
                 {{ $row['check_out_status_label'] }}
               </div>
+              @if($row['check_out_distance_meters'] !== null)
+                <div class="mt-1 text-xs font-bold text-emerald-600">
+                  <i class="bi bi-geo-alt-fill"></i>
+                  {{ number_format($row['check_out_distance_meters'], 0, ',', '.') }} m
+                  <span class="text-slate-400">±{{ number_format($row['check_out_accuracy_meters'], 0, ',', '.') }} m</span>
+                </div>
+              @endif
             </td>
             <td class="max-w-xs px-3 py-3 font-semibold text-slate-600">
               {{ $row['notes'] }}

@@ -16,12 +16,22 @@ class SchoolAttendanceSetting extends Model
         'check_out_time',
         'check_out_deadline',
         'is_active',
+        'teacher_geofence_enabled',
+        'teacher_geofence_latitude',
+        'teacher_geofence_longitude',
+        'teacher_geofence_radius_meters',
+        'teacher_geofence_max_accuracy_meters',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'teacher_geofence_enabled' => 'boolean',
+            'teacher_geofence_latitude' => 'float',
+            'teacher_geofence_longitude' => 'float',
+            'teacher_geofence_radius_meters' => 'integer',
+            'teacher_geofence_max_accuracy_meters' => 'integer',
         ];
     }
 

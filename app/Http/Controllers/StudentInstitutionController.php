@@ -55,19 +55,26 @@ class StudentInstitutionController extends Controller
             $input = $data['institutions'][$institutionId] ?? [];
             $isActive = filter_var($input['active'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-            if ($institution->code !== 'madad' || ! $isActive) {
+            if (! $isActive) {
                 continue;
             }
 
-            $level = StudentEnrollment::normalizeMadadLevel($input['level'] ?? null);
+            if ($institution->code === 'madad') {
+                $level = StudentEnrollment::normalizeMadadLevel($input['level'] ?? null);
 
-            if ($level === null) {
-                throw ValidationException::withMessages([
-                    "institutions.{$institutionId}.level" => 'Pilih jenjang MADAD: Ula, Wustha, atau Ulya.',
-                ]);
+                if ($level === null) {
+                    throw ValidationException::withMessages([
+                        "institutions.{$institutionId}.level" => 'Pilih jenjang MADAD: Ula, Wustha, atau Ulya.',
+                    ]);
+                }
+
+                $data['institutions'][$institutionId]['level'] = $level;
+                continue;
             }
 
-            $data['institutions'][$institutionId]['level'] = $level;
+            if (in_array($institution->code, ['mi', 'mts', 'ma'], true)) {
+                $data['institutions'][$institutionId]['level'] = $institution->code;
+            }
         }
 
         DB::transaction(function () use ($data, $student, $academicYear, $availableInstitutions, $canManageResidency) {

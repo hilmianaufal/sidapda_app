@@ -58,12 +58,11 @@
           </div>
 
           <div>
-            <label for="level" class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Peserta</label>
-            <select id="level" name="level" required class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100">
-              <option value="mts" @selected(old('level', $extracurricular->level) === 'mts')>MTs</option>
-              <option value="ma" @selected(old('level', $extracurricular->level) === 'ma')>MA</option>
-              <option value="mts_ma" @selected(old('level', $extracurricular->level) === 'mts_ma')>MTs & MA</option>
-            </select>
+            <label class="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Peserta</label>
+            <input type="hidden" name="level" value="{{ $institution->code }}">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700">
+              {{ $institution->short_name }}
+            </div>
           </div>
 
           <div>

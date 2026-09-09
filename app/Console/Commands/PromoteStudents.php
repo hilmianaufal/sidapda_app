@@ -11,7 +11,7 @@ use Throwable;
 class PromoteStudents extends Command
 {
     protected $signature = 'students:promote
-        {--institution= : Kode lembaga tertentu, misalnya sekolah-pagi}
+        {--institution= : Kode lembaga tertentu, misalnya mts atau ma}
         {--from= : Tahun ajaran asal, misalnya 2026/2027}
         {--dry-run : Tampilkan rencana tanpa mengubah data}';
 
